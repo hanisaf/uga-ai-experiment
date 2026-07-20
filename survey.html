@@ -1,0 +1,602 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AI-Assisted Passenger Screening · Research Instrument</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans+KR:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  *{box-sizing:border-box;}
+  html,body{margin:0;}
+  a{color:#2f5e8f;} a:hover{color:#1f4269;}
+  button{font-family:inherit;}
+</style>
+</head>
+<body style="background:#eceef1;">
+<div id="root"></div>
+
+<script>
+/* ============================================================================
+   AI-Assisted Passenger Screening Terminal — standalone reference build.
+   Faithful vanilla-JS port of the Claude Design prototype (AI Screening
+   Terminal v2.dc.html). Same design tokens, same behavior, same scenarios.json
+   and image assets. No build step, no support.js.
+   ========================================================================== */
+(function(){
+  "use strict";
+
+  var C = { ink:'#1f2a37', accent:'#2f5e8f', green:'#2f7d57', amber:'#b9740f', red:'#b23b3b' };
+  var colorOf = { low:C.green, med:C.amber, high:C.red };
+  var tint = { low:['#eef6f1','#cbe2d4'], med:['#fbf3ea','#ecd9bd'], high:['#f9edec','#e8cdcb'] };
+
+  function esc(s){
+    return String(s==null?'':s).replace(/[&<>"]/g,function(c){
+      return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];
+    });
+  }
+
+  // ---- App state (mirrors the original component) --------------------------
+  var App = {
+    qp: (function(){ try { return new URLSearchParams(window.location.search); } catch(e){ return new URLSearchParams(''); } })(),
+    data: null,
+    taskStart: Date.now(),
+    scenarioStart: Date.now(),
+    sess: {},
+    tid: null,
+    rtid: null,                // return-countdown interval handle
+    timerSec: 60,
+    transparent: true,
+    guid: '',
+    returnUrl: '',
+    debug: false,
+    autoReturn: false,         // auto-redirect to return_url on completion
+    returnDelay: 6,            // seconds to show results before auto-return
+    MAX_URL: 7500,             // safety cap on the whole return URL (chars)
+    state: { loading:true, order:[], cur:0, view:'task', dec:{}, decMs:{}, expired:{}, opened:{}, viewed:{}, timerLeft:60, copied:false, returnIn:null }
+  };
+
+  // ---- URL parameters ------------------------------------------------------
+  (function initParams(){
+    var qp = App.qp;
+    var pTimer = parseInt(qp.get('timer_sec'), 10);
+    if(!isNaN(pTimer) && pTimer>=5 && pTimer<=600){
+      App.timerSec = pTimer;
+    } else {
+      App.timerSec = 30 + Math.floor(Math.random()*61); // continuous covariate U(30,90)
+    }
+    var pT = qp.get('transparent');
+    App.transparent = pT!==null ? (pT==='1'||pT==='true') : true;
+    App.guid = qp.get('guid') || (window.crypto && crypto.randomUUID ? crypto.randomUUID() :
+      'xxxx-xxxx-xxxx'.replace(/x/g, function(){ return Math.floor(Math.random()*16).toString(16); }));
+    App.returnUrl = qp.get('return_url') || qp.get('returnUrl') || '';
+    App.debug = qp.get('debug')==='1';
+    // Auto-return to Qualtrics on completion. On by default when a return_url is
+    // present (so data isn't lost if the participant closes the tab), but off in
+    // debug/QA so the results screen can be inspected. Force with auto_return=1/0.
+    var pAR = qp.get('auto_return');
+    App.autoReturn = !!App.returnUrl && (pAR!==null ? (pAR==='1'||pAR==='true') : !App.debug);
+    var pRD = parseInt(qp.get('return_delay'), 10);
+    if(!isNaN(pRD) && pRD>=0 && pRD<=60){ App.returnDelay = pRD; }
+    App.state.timerLeft = App.timerSec;
+  })();
+
+  // ---- Helpers -------------------------------------------------------------
+  function scenario(){ return App.data[App.state.order[App.state.cur]]; }
+  function setState(patch, cb){ Object.assign(App.state, patch); render(); if(cb) cb(); }
+  function labelFor(d){ return d==='a'?'Allow':d==='s'?'Secondary':d==='d'?'Deny':'—'; }
+
+  function makeOrder(data){
+    var idx = data.map(function(_, i){ return i; });
+    for(var i=idx.length-1;i>0;i--){ var j=Math.floor(Math.random()*(i+1)); var t=idx[i]; idx[i]=idx[j]; idx[j]=t; }
+    var isCrit = function(pos){ return data[idx[pos]].crit; };
+    for(var pos=0;pos<idx.length;pos++){
+      if(isCrit(pos) && (pos<2 || pos>9)){
+        var targets=[]; for(var k=2;k<=9;k++){ if(!isCrit(k)) targets.push(k); }
+        var tt = targets[Math.floor(Math.random()*targets.length)];
+        var tmp=idx[pos]; idx[pos]=idx[tt]; idx[tt]=tmp;
+      }
+    }
+    return idx;
+  }
+
+  function mkBtn(active, c, bg, bd){
+    return 'display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;min-height:70px;padding:9px 4px;border-radius:9px;cursor:pointer;font-family:inherit;font-weight:600;line-height:1.2;text-align:center;transition:all .12s;border:1.5px solid '+(active?c:bd)+';background:'+(active?c:bg)+';color:'+(active?'#fff':c)+';';
+  }
+
+  // ---- Timer ---------------------------------------------------------------
+  function startTimer(){
+    clearInterval(App.tid);
+    App.state.timerLeft = App.timerSec;
+    updateTimerDom();
+    App.tid = setInterval(function(){
+      var t = App.state.timerLeft - 1;
+      if(t<=0){
+        clearInterval(App.tid);
+        App.state.timerLeft = 0;
+        var s = scenario();
+        var cur = App.state.cur;
+        if(App.state.dec[cur]===undefined){
+          App.state.dec[cur] = 's';
+          App.state.decMs[cur] = App.timerSec*1000;
+          App.state.expired[cur] = true;
+          App.sess[s.id].decision = 'secondary';
+          App.sess[s.id].decision_time_ms = App.timerSec*1000;
+          App.sess[s.id].timer_expired = true;
+          render();
+          setTimeout(next, 1400);
+        } else {
+          render();
+        }
+        return;
+      }
+      App.state.timerLeft = t;
+      updateTimerDom();
+    }, 1000);
+  }
+
+  // Lightweight per-tick DOM update so the CSS width transition stays smooth
+  function updateTimerDom(){
+    if(App.state.view!=='task' || App.state.loading) return;
+    var max = App.timerSec;
+    var frac = App.state.timerLeft/max;
+    var pct = Math.max(0, frac*100);
+    var tcol = frac>.5?C.green:frac>.2?C.amber:C.red;
+    var pill = document.getElementById('timerLabel');
+    var dot = document.getElementById('timerDot');
+    var bar = document.getElementById('timerBar');
+    if(pill) pill.textContent = App.state.timerLeft+'s · 남은 시간';
+    if(dot) dot.style.background = tcol;
+    if(bar){ bar.style.width = pct+'%'; bar.style.background = tcol; }
+  }
+
+  // ---- Interactions --------------------------------------------------------
+  function togglePanel(id){
+    var cur = App.state.cur;
+    var opened = App.state.opened;
+    var set = Object.assign({}, opened[cur]||{});
+    var willOpen = !set[id];
+    set[id] = willOpen; opened[cur] = set;
+    var viewed = App.state.viewed;
+    var vs = Object.assign({}, viewed[cur]||{});
+    if(willOpen){
+      vs[id] = true;
+      var s = scenario();
+      App.sess[s.id].panels_opened.push({ panel:id, t_ms:Date.now()-App.scenarioStart });
+    }
+    viewed[cur] = vs;
+    render();
+  }
+
+  function decide(d){
+    if(App.state.expired[App.state.cur]) return;
+    clearInterval(App.tid);
+    var s = scenario();
+    var ms = Date.now()-App.scenarioStart;
+    App.sess[s.id].decision = d==='a'?'allow':d==='s'?'secondary':'deny';
+    App.sess[s.id].decision_time_ms = ms;
+    App.state.dec[App.state.cur] = d;
+    App.state.decMs[App.state.cur] = ms;
+    render();
+  }
+
+  function next(){
+    var last = App.data.length-1;
+    if(App.state.cur>=last){ clearInterval(App.tid); App.state.view='results'; render(); startReturnCountdown(); return; }
+    App.state.cur += 1;
+    App.scenarioStart = Date.now();
+    render();
+    startTimer();
+  }
+
+  function restart(){
+    clearInterval(App.tid); cancelReturn();
+    var order = makeOrder(App.data);
+    App.data.forEach(function(s){ App.sess[s.id] = { panels_opened:[], decision:null, decision_time_ms:null, timer_expired:false }; });
+    App.taskStart = Date.now(); App.scenarioStart = Date.now();
+    Object.assign(App.state, { order:order, cur:0, view:'task', dec:{}, decMs:{}, expired:{}, opened:{}, viewed:{}, timerLeft:App.timerSec, copied:false, returnIn:null });
+    render();
+    startTimer();
+  }
+
+  // ---- Auto-return to Qualtrics -------------------------------------------
+  function startReturnCountdown(){
+    cancelReturn();
+    if(!App.autoReturn) return;                 // manual return only (or no return_url)
+    if(App.returnDelay<=0){ goQualtrics(); return; }
+    App.state.returnIn = App.returnDelay;
+    render();
+    App.rtid = setInterval(function(){
+      var t = (App.state.returnIn||0) - 1;
+      if(t<=0){ cancelReturn(); goQualtrics(); return; }
+      App.state.returnIn = t; render();
+    }, 1000);
+  }
+  function cancelReturn(){ clearInterval(App.rtid); App.rtid = null; }
+
+  // ---- Qualtrics export ----------------------------------------------------
+  function buildExportParams(opts){
+    opts = opts || {};
+    var p = new URLSearchParams();
+    p.set('guid', App.guid);
+    p.set('timer_sec', String(App.timerSec));
+    p.set('transparent', App.transparent?'1':'0');
+    p.set('scenario_order', App.state.order.map(function(i){ return App.data[i].id; }).join(','));
+    var correct=0, expired=0, panelsTotal=0;
+    App.data.forEach(function(s, di){
+      var pos = App.state.order.indexOf(di);
+      var d = App.state.dec[pos];
+      if(d===s.correct) correct++;
+      if(App.state.expired[pos]) expired++;
+      var log = App.sess[s.id];
+      panelsTotal += new Set(log.panels_opened.map(function(e){ return e.panel; })).size;
+      p.set('s'+s.id+'_dec', log.decision||'none');
+      p.set('s'+s.id+'_time', String(log.decision_time_ms==null?'':log.decision_time_ms));
+      p.set('s'+s.id+'_correct', d===s.correct?'1':'0');
+      p.set('s'+s.id+'_difficulty', s.difficulty);
+    });
+    p.set('n_correct', String(correct));
+    p.set('n_expired', String(expired));
+    p.set('panels_total', String(panelsTotal));
+    App.data.filter(function(s){ return s.crit; }).forEach(function(s){
+      var di = App.data.findIndex(function(x){ return x.id===s.id; });
+      var pos = App.state.order.indexOf(di);
+      p.set('s'+s.id+'_override', App.state.dec[pos]!==App.data[di].correct ? '0' : '1');
+    });
+    if(!opts.omitEventsLog){
+      p.set('events_log', JSON.stringify({
+        guid:App.guid, timer_sec:App.timerSec, transparent:App.transparent,
+        scenario_order:App.state.order.map(function(i){ return App.data[i].id; }),
+        scenarios:App.sess
+      }));
+    }
+    return p;
+  }
+
+  // Assemble the final return URL. If the full URL (base + all params incl.
+  // events_log) would exceed the safety cap, drop events_log so the ~58 summary
+  // fields still make it back, and flag events_log_dropped=1. The full trace is
+  // still recoverable via "Copy export data".
+  function finalReturnUrl(){
+    var sep = App.returnUrl.indexOf('?')>=0 ? '&' : '?';
+    var full = App.returnUrl + sep + buildExportParams().toString();
+    if(full.length <= App.MAX_URL) return { url:full, dropped:false, length:full.length };
+    var p = buildExportParams({ omitEventsLog:true });
+    p.set('events_log_dropped', '1');
+    var trimmed = App.returnUrl + sep + p.toString();
+    return { url:trimmed, dropped:true, length:trimmed.length };
+  }
+
+  function copyExport(){
+    var q = buildExportParams().toString();
+    var done = function(){ App.state.copied=true; render(); setTimeout(function(){ App.state.copied=false; render(); }, 1600); };
+    if(navigator.clipboard){ navigator.clipboard.writeText(q).then(done).catch(done); } else done();
+  }
+
+  function goQualtrics(){
+    cancelReturn();
+    if(!App.returnUrl) return;
+    window.location.href = finalReturnUrl().url;
+  }
+
+  // ---- Render --------------------------------------------------------------
+  function shell(inner){
+    var guidShort = App.guid.slice(0,8);
+    var condLabel = App.transparent?'transparent':'opaque';
+    return ''+
+    '<div style="min-height:100vh;background:#eceef1;font-family:\'IBM Plex Sans\',\'IBM Plex Sans KR\',sans-serif;color:#1f2a37;padding:40px 24px 48px;-webkit-font-smoothing:antialiased;">'+
+      '<div style="max-width:1120px;margin:0 auto 20px;display:flex;justify-content:space-between;align-items:flex-end;gap:16px;">'+
+        '<div style="min-width:0;">'+
+          '<div style="font-family:\'IBM Plex Mono\',monospace;font-size:11px;letter-spacing:.14em;color:#9aa3b1;font-weight:500;text-transform:uppercase;">Confidential research instrument · 연구용 자료</div>'+
+          '<h1 style="margin:7px 0 5px;font-size:26px;font-weight:700;letter-spacing:-.02em;color:#1f2a37;">AI-Assisted Passenger Screening <span style="font-weight:500;color:#6b7480;font-size:18px;">· AI 보조 출입국 심사</span></h1>'+
+          '<div style="font-size:13px;color:#5b6573;line-height:1.6;max-width:760px;">Review each passenger\'s file and decide whether to allow entry, refer to secondary screening, or deny. The AI risk assessment is provided to assist your judgment — not to replace it.</div>'+
+          '<div style="font-size:11.5px;color:#9aa3b1;margin-top:9px;font-family:\'IBM Plex Mono\',monospace;letter-spacing:.01em;">Behavioral task · 12 scenarios&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;Safadi · Kim · Schanke — UGA / UCF · July 2026</div>'+
+        '</div>'+
+        '<div style="flex:none;text-align:right;">'+
+          '<div title="'+esc(App.guid)+'" style="display:inline-block;padding:6px 11px;border:1px solid #dde2e8;border-radius:7px;background:#fff;font-family:\'IBM Plex Mono\',monospace;font-size:10.5px;color:#6b7480;letter-spacing:.03em;white-space:nowrap;">SESSION&nbsp;&nbsp;'+esc(guidShort)+'</div>'+
+          '<div style="font-family:\'IBM Plex Mono\',monospace;font-size:10px;color:#aab2bd;margin-top:5px;">timer '+App.timerSec+'s · '+condLabel+'</div>'+
+        '</div>'+
+      '</div>'+
+      '<div style="max-width:1120px;margin:0 auto;background:#fff;border:1px solid #dde2e8;border-radius:12px;box-shadow:0 1px 2px rgba(20,30,45,.04),0 18px 40px -18px rgba(20,30,45,.16);overflow:hidden;">'+
+        inner+
+      '</div>'+
+      '<div style="max-width:1120px;margin:16px auto 0;font-size:11px;color:#9aa3b1;line-height:1.6;text-align:center;">All scenarios are fictional and the AI system is simulated for research purposes. · 본 과제의 모든 시나리오는 허구이며 AI 시스템은 연구 목적의 시뮬레이션입니다.<br>URL parameters: <span style="font-family:\'IBM Plex Mono\',monospace;">timer_sec</span> (30–90, else randomized) · <span style="font-family:\'IBM Plex Mono\',monospace;">transparent</span> (1/0) · <span style="font-family:\'IBM Plex Mono\',monospace;">guid</span> · <span style="font-family:\'IBM Plex Mono\',monospace;">return_url</span> · <span style="font-family:\'IBM Plex Mono\',monospace;">debug</span> (1 shows difficulty)</div>'+
+    '</div>';
+  }
+
+  function loadingView(){
+    return '<div style="padding:80px 24px;text-align:center;">'+
+      '<div style="font-size:13px;color:#6b7480;">Loading case files…</div>'+
+      '<div style="font-family:\'IBM Plex Mono\',monospace;font-size:11px;color:#aab2bd;margin-top:6px;">assets/scenarios.json</div>'+
+    '</div>';
+  }
+
+  function taskView(){
+    var st = App.state;
+    var total = App.data.length;
+    var cur = st.cur;
+    var s = scenario();
+    var opened = st.opened[cur]||{};
+    var viewed = st.viewed[cur]||{};
+    var ai = s.ai;
+    var aiColor = colorOf[ai.level];
+    var dec = st.dec[cur];
+    var last = cur===total-1;
+
+    var max = App.timerSec;
+    var frac = st.timerLeft/max;
+    var pct = Math.max(0, frac*100);
+    var tcol = frac>.5?C.green:frac>.2?C.amber:C.red;
+
+    // Panels
+    var panelsHtml = s.panels.map(function(p){
+      var isOpen = !!opened[p.id];
+      var hasWarn = p.rows.some(function(r){ return r.warn; });
+      var img = p.id==='doc' ? s.passport : null;
+      var body = '';
+      if(isOpen){
+        var rows = '';
+        if(img){
+          rows += '<div style="margin:8px 0 4px;">'+
+            '<img src="'+esc(img)+'" alt="Passport biographical page" style="width:100%;display:block;border-radius:7px;border:1px solid #dfe4ea;" />'+
+            '<div style="font-family:\'IBM Plex Mono\',monospace;font-size:10px;color:#aab2bd;margin-top:4px;letter-spacing:.03em;">SCANNED DOCUMENT · 여권 신원정보면</div>'+
+          '</div>';
+        }
+        rows += p.rows.map(function(r){
+          if(r.warn){
+            return '<div style="display:flex;gap:8px;margin:7px 0 2px;padding:9px 12px;border-radius:7px;background:#fbf3ec;border-left:3px solid #b9740f;color:#7a4e0c;font-size:12px;line-height:1.5;">'+
+              '<span style="flex:none;">⚠</span><span>'+esc(r.v)+'</span></div>';
+          }
+          return '<div style="display:flex;gap:14px;padding:6px 0;border-top:1px solid #f1f3f6;font-size:12.5px;line-height:1.45;">'+
+            '<span style="color:#828c9a;flex:none;width:124px;">'+esc(r.l)+'</span>'+
+            '<span style="color:#27313d;font-family:\'IBM Plex Mono\',monospace;font-size:11.5px;">'+esc(r.v)+'</span></div>';
+        }).join('');
+        body = '<div style="padding:2px 14px 11px;">'+rows+'</div>';
+      }
+      return '<div style="border:1px solid #e6eaef;border-radius:9px;overflow:hidden;background:#fff;">'+
+        '<div data-toggle="'+esc(p.id)+'" style="display:flex;justify-content:space-between;align-items:center;gap:10px;padding:12px 14px;cursor:pointer;user-select:none;background:#fbfcfd;">'+
+          '<span style="display:flex;align-items:center;gap:9px;font-size:13px;font-weight:600;min-width:0;">'+
+            '<span style="white-space:nowrap;">'+esc(p.label)+'</span> <span style="color:#9aa3b1;font-weight:500;font-size:12px;white-space:nowrap;">'+esc(p.ko)+'</span>'+
+            (hasWarn?'<span style="display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;border-radius:4px;background:#fbf0e3;color:#b9740f;font-size:11px;font-weight:700;flex:none;">!</span>':'')+
+          '</span>'+
+          '<span style="font-family:\'IBM Plex Mono\',monospace;font-size:11px;color:#9aa3b1;white-space:nowrap;">'+(isOpen?'– Hide':'+ View')+'</span>'+
+        '</div>'+
+        body+
+      '</div>';
+    }).join('');
+
+    // Factors
+    var factorsHtml = '';
+    if(App.transparent){
+      var flist = ai.factors.map(function(f){
+        return '<div style="display:flex;gap:9px;padding:4px 0;line-height:1.45;">'+
+          '<span style="color:'+aiColor+';flex:none;font-weight:600;font-size:12.5px;">—</span>'+
+          '<span style="min-width:0;">'+
+            '<span style="display:block;font-size:12.5px;color:#46505e;">'+esc(f.en)+'</span>'+
+            '<span style="display:block;font-size:12px;color:#6b7480;margin-top:1px;">'+esc(f.ko)+'</span>'+
+          '</span></div>';
+      }).join('');
+      factorsHtml = '<div style="margin-top:15px;border-top:1px solid #eef1f4;padding-top:12px;">'+
+        '<div style="font-size:10.5px;letter-spacing:.06em;color:#9aa3b1;font-weight:600;text-transform:uppercase;margin-bottom:7px;">Contributing factors · 평가 근거</div>'+
+        flist+
+      '</div>';
+    }
+
+    // Decision buttons
+    var allowStyle = mkBtn(dec==='a', C.green, tint.low[0], tint.low[1]);
+    var secStyle = mkBtn(dec==='s', C.amber, tint.med[0], tint.med[1]);
+    var denyStyle = mkBtn(dec==='d', C.red, tint.high[0], tint.high[1]);
+
+    var expiredNow = !!st.expired[cur];
+    var panelCount = Object.keys(viewed).length;
+    var reviewed = cur+' / '+total+' reviewed';
+
+    // Dots
+    var dotBase = 'width:8px;height:8px;border-radius:50%;flex:none;display:inline-block;';
+    var dotsHtml = st.order.map(function(_, i){
+      var style = i<cur ? dotBase+'background:#1f2a37;'
+        : i===cur ? dotBase+'background:#2f5e8f;box-shadow:0 0 0 3px rgba(47,94,143,.16);'
+        : dotBase+'background:#d6dce3;';
+      return '<span style="'+style+'"></span>';
+    }).join('');
+
+    var nextStyle = 'width:100%;margin-top:12px;padding:13px;border:none;border-radius:9px;background:'+(dec?'#1f2a37':'#c8cfd7')+';color:#fff;font-family:inherit;font-size:13.5px;font-weight:600;cursor:'+(dec?'pointer':'default')+';transition:background .15s;';
+
+    return '<div>'+
+      '<div style="display:flex;justify-content:space-between;align-items:center;gap:16px;padding:14px 22px;border-bottom:1px solid #e7ebf0;">'+
+        '<div style="display:flex;align-items:center;gap:12px;min-width:0;">'+
+          '<div style="width:32px;height:32px;border-radius:7px;background:#1f2a37;color:#fff;display:flex;align-items:center;justify-content:center;font-family:\'IBM Plex Mono\',monospace;font-size:11px;font-weight:600;letter-spacing:.03em;flex:none;">ICIS</div>'+
+          '<div style="min-width:0;">'+
+            '<div style="font-size:13.5px;font-weight:600;letter-spacing:-.01em;">출입국심사정보시스템 <span style="color:#9aa3b1;font-weight:500;">· Immigration Control Information System</span></div>'+
+            '<div style="font-size:10.5px;color:#9aa3b1;margin-top:2px;font-family:\'IBM Plex Mono\',monospace;letter-spacing:.02em;">인천국제공항 · INCHEON INT\'L AIRPORT&nbsp;&nbsp;·&nbsp;&nbsp;대한민국 법무부 / MINISTRY OF JUSTICE</div>'+
+          '</div>'+
+        '</div>'+
+        '<div style="display:flex;align-items:center;gap:8px;padding:8px 13px;border-radius:8px;border:1px solid #cbd8e6;background:#eef4fa;color:#2f5e8f;font-size:12px;font-weight:600;white-space:nowrap;">'+
+          '<span id="timerDot" style="width:7px;height:7px;border-radius:50%;flex:none;background:'+tcol+';"></span><span id="timerLabel">'+st.timerLeft+'s · 남은 시간</span>'+
+          '<span style="font-weight:500;color:#8a94a3;border-left:1px solid #cbd8e6;padding-left:8px;">배정 '+App.timerSec+'s / 승객</span>'+
+        '</div>'+
+      '</div>'+
+      '<div style="height:4px;background:#eef1f4;"><div id="timerBar" style="height:100%;width:'+pct+'%;background:'+tcol+';transition:width 1s linear, background .4s;"></div></div>'+
+      '<div style="display:flex;justify-content:space-between;align-items:center;gap:16px;padding:11px 22px;background:#f6f8fa;border-bottom:1px solid #eaeef2;">'+
+        '<div style="min-width:0;">'+
+          '<span style="font-size:15.5px;font-weight:600;letter-spacing:-.01em;">'+esc(s.name)+'</span>'+
+          '<span style="font-size:12.5px;color:#5b6573;margin-left:12px;">'+esc(s.nat+'  ·  Age '+s.age+' / '+s.sex+'  ·  '+s.purpose)+'</span>'+
+          '<div style="font-family:\'IBM Plex Mono\',monospace;font-size:11px;color:#9aa3b1;letter-spacing:.02em;margin-top:3px;">'+esc('ICN-'+String(s.id).padStart(3,'0'))+' · '+esc('Passenger '+(cur+1)+' of '+total)+(App.debug?' <span style="color:#b9740f;">· difficulty: '+esc(s.difficulty)+'</span>':'')+'</div>'+
+        '</div>'+
+        '<img src="'+esc(s.photo)+'" alt="Traveler photo" style="flex:none;width:58px;height:76px;object-fit:cover;border-radius:6px;border:1px solid #d3dae2;background:#eef1f5;box-shadow:0 1px 3px rgba(20,30,45,.12);" />'+
+      '</div>'+
+      '<div style="display:grid;grid-template-columns:1.08fr .92fr;">'+
+        '<div style="padding:16px 18px;border-right:1px solid #eaeef2;display:flex;flex-direction:column;gap:8px;">'+
+          '<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:2px;">'+
+            '<span style="font-size:10.5px;letter-spacing:.09em;color:#9aa3b1;font-weight:600;text-transform:uppercase;">Case file · 심사 자료</span>'+
+            '<span style="font-size:11px;color:#aab2bd;">Expand each section to review</span>'+
+          '</div>'+
+          panelsHtml+
+        '</div>'+
+        '<div style="padding:16px 18px;display:flex;flex-direction:column;gap:14px;">'+
+          '<div style="border:1px solid #e6eaef;border-radius:10px;padding:16px;background:linear-gradient(180deg,#fbfcfe,#ffffff);">'+
+            '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:11px;">'+
+              '<span style="font-size:10.5px;letter-spacing:.1em;font-weight:600;color:#8a94a3;text-transform:uppercase;">AI Risk Assessment</span>'+
+              '<span style="font-size:11.5px;color:#9aa3b1;">AI 위험 평가</span>'+
+            '</div>'+
+            '<div style="display:flex;align-items:flex-end;gap:15px;">'+
+              '<div style="font-family:\'IBM Plex Mono\',monospace;font-size:42px;font-weight:600;line-height:.9;color:'+aiColor+';">'+ai.score+'<span style="font-size:15px;color:#9aa3b1;font-weight:400;">/100</span></div>'+
+              '<div style="padding-bottom:4px;">'+
+                '<span style="display:inline-block;padding:4px 11px;border-radius:6px;font-size:12px;font-weight:600;color:#fff;background:'+aiColor+';white-space:nowrap;">'+esc(ai.rec)+'</span>'+
+                '<div style="font-size:11.5px;color:#8a94a3;margin-top:5px;">'+esc(ai.recKo)+' · 신뢰도 '+ai.conf+'%</div>'+
+              '</div>'+
+            '</div>'+
+            '<div style="position:relative;height:6px;border-radius:3px;margin:16px 0 5px;background:linear-gradient(90deg,#2f7d57 0%,#c9ad3e 50%,#b23b3b 100%);opacity:.82;">'+
+              '<div style="position:absolute;top:-3px;width:3px;height:12px;border-radius:2px;background:#1f2a37;box-shadow:0 0 0 2px #fff;left:calc('+ai.score+'% - 1.5px);"></div>'+
+            '</div>'+
+            '<div style="display:flex;justify-content:space-between;font-family:\'IBM Plex Mono\',monospace;font-size:9.5px;color:#aab2bd;letter-spacing:.04em;">'+
+              '<span>0 · LOW</span><span>50</span><span>HIGH · 100</span>'+
+            '</div>'+
+            factorsHtml+
+          '</div>'+
+          '<div>'+
+            '<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:9px;">'+
+              '<span style="font-size:10.5px;letter-spacing:.1em;font-weight:600;color:#8a94a3;text-transform:uppercase;">Your Decision</span>'+
+              '<span style="font-size:11.5px;color:#9aa3b1;">심사 결정</span>'+
+            '</div>'+
+            '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;">'+
+              '<button data-decide="a" style="'+allowStyle+'"><span style="font-size:17px;line-height:1;">✓</span><span style="font-size:12px;">Allow Entry</span><span style="font-size:10.5px;opacity:.82;">입국 허가</span></button>'+
+              '<button data-decide="s" style="'+secStyle+'"><span style="font-size:17px;line-height:1;">→</span><span style="font-size:12px;">Secondary</span><span style="font-size:10.5px;opacity:.82;">2차 심사</span></button>'+
+              '<button data-decide="d" style="'+denyStyle+'"><span style="font-size:17px;line-height:1;">✕</span><span style="font-size:12px;">Deny Entry</span><span style="font-size:10.5px;opacity:.82;">입국 거부</span></button>'+
+            '</div>'+
+            (expiredNow?'<div style="margin-top:10px;padding:9px 12px;border-radius:7px;background:#f9edec;border-left:3px solid #b23b3b;color:#7c2a2a;font-size:12px;line-height:1.5;">Time expired — the default action (Secondary) was recorded. · 제한시간 초과 — 기본 조치(2차 심사)가 기록되었습니다.</div>':'')+
+            '<div style="display:flex;justify-content:space-between;margin-top:11px;font-size:11.5px;color:#8a94a3;">'+
+              '<span>Sections reviewed · 확인 항목 <b style="color:#1f2a37;font-family:\'IBM Plex Mono\',monospace;">'+panelCount+'</b>/4</span>'+
+              '<span style="font-family:\'IBM Plex Mono\',monospace;">'+reviewed+'</span>'+
+            '</div>'+
+            '<button data-next="1" '+(dec?'':'disabled')+' style="'+nextStyle+'">'+(last?'View results · 결과 보기  →':'Next passenger · 다음 승객  →')+'</button>'+
+          '</div>'+
+        '</div>'+
+      '</div>'+
+      '<div style="display:flex;align-items:center;gap:7px;flex-wrap:wrap;padding:13px 22px;background:#f6f8fa;border-top:1px solid #eaeef2;">'+
+        dotsHtml+
+        '<span style="font-size:11.5px;color:#9aa3b1;margin-left:8px;font-family:\'IBM Plex Mono\',monospace;">'+reviewed+'</span>'+
+      '</div>'+
+    '</div>';
+  }
+
+  function resultsView(){
+    var st = App.state;
+    var data = App.data, order = st.order, dec = st.dec, viewed = st.viewed;
+    var total = data.length;
+    var correct=0, nExpired=0;
+    order.forEach(function(di, pos){ if(dec[pos]===data[di].correct) correct++; if(st.expired[pos]) nExpired++; });
+    var critOk = data.every(function(s, di){ if(!s.crit) return true; return dec[order.indexOf(di)]===s.correct; });
+    var totalPanels=0; Object.keys(viewed).forEach(function(k){ totalPanels += Object.keys(viewed[k]).length; });
+
+    var logRows = order.map(function(di, pos){
+      var s = data[di], d = dec[pos], ok = d===s.correct;
+      var badge = st.expired[pos]?'Expired':(s.crit?(ok?'Caught':'Missed'):(ok?'Correct':'Missed'));
+      var bc = ok?C.green:C.red;
+      var badgeStyle = 'justify-self:end;padding:3px 10px;border-radius:11px;font-size:11px;font-weight:600;background:'+(ok?'#eef6f1':'#f9edec')+';color:'+bc+';white-space:nowrap;';
+      var rowStyle = 'display:grid;grid-template-columns:24px 1.7fr 1fr 1fr 86px;align-items:center;gap:12px;padding:9px 0;border-top:1px solid #eef1f4;font-size:12.5px;';
+      return '<div style="'+rowStyle+'">'+
+        '<span style="font-family:\'IBM Plex Mono\',monospace;font-size:11px;color:#aab2bd;">'+String(pos+1).padStart(2,'0')+'</span>'+
+        '<span style="font-weight:600;color:#1f2a37;">'+(s.crit?'★':'')+' '+esc(s.name)+' <span style="color:#9aa3b1;font-weight:500;font-size:11.5px;">'+esc(s.nat)+'</span></span>'+
+        '<span style="color:#5b6573;">You · '+labelFor(d)+'</span>'+
+        '<span style="color:#5b6573;">Correct · '+labelFor(s.correct)+'</span>'+
+        '<span style="'+badgeStyle+'">'+badge+'</span>'+
+      '</div>';
+    }).join('');
+
+    var exportQuery = buildExportParams().toString();
+    var critColor = critOk?C.green:C.red;
+    var critLabel = critOk?'Both AI errors caught':'AI error(s) missed';
+    var ret = App.returnUrl ? finalReturnUrl() : null;   // final URL + length + dropped flag
+    var counting = st.returnIn!=null;                     // auto-return countdown active
+    var returnBtnLabel = counting
+      ? 'Returning to survey in '+st.returnIn+'s · '+st.returnIn+'초 후 이동  →'
+      : 'Return to survey · 설문으로 돌아가기 →';
+
+    return '<div>'+
+      '<div style="display:flex;justify-content:space-between;align-items:center;padding:15px 22px;border-bottom:1px solid #e7ebf0;">'+
+        '<span style="font-size:14px;font-weight:600;">Session complete <span style="color:#9aa3b1;font-weight:500;">· 심사 종료</span></span>'+
+        '<span style="font-family:\'IBM Plex Mono\',monospace;font-size:10.5px;color:#9aa3b1;">'+esc(App.guid)+'</span>'+
+      '</div>'+
+      '<div style="padding:22px;">'+
+        '<div style="display:flex;gap:12px;margin-bottom:20px;">'+
+          '<div style="flex:1;background:#f7f9fb;border:1px solid #eaeef2;border-radius:10px;padding:16px;text-align:center;">'+
+            '<div style="font-family:\'IBM Plex Mono\',monospace;font-size:30px;font-weight:600;color:#1f2a37;line-height:1;">'+correct+'<span style="font-size:16px;color:#9aa3b1;">/'+total+'</span></div>'+
+            '<div style="font-size:11.5px;color:#7a838f;margin-top:6px;">Correct decisions · 정확한 결정</div>'+
+          '</div>'+
+          '<div style="flex:1;background:#f7f9fb;border:1px solid #eaeef2;border-radius:10px;padding:16px;text-align:center;">'+
+            '<div style="font-family:\'IBM Plex Mono\',monospace;font-size:30px;font-weight:600;color:'+critColor+';line-height:1;">S5 · S9</div>'+
+            '<div style="font-size:11.5px;color:#7a838f;margin-top:6px;">'+critLabel+'</div>'+
+          '</div>'+
+          '<div style="flex:1;background:#f7f9fb;border:1px solid #eaeef2;border-radius:10px;padding:16px;text-align:center;">'+
+            '<div style="font-family:\'IBM Plex Mono\',monospace;font-size:30px;font-weight:600;color:#1f2a37;line-height:1;">'+totalPanels+'</div>'+
+            '<div style="font-size:11.5px;color:#7a838f;margin-top:6px;">Sections opened · 확인 항목</div>'+
+          '</div>'+
+          '<div style="flex:1;background:#f7f9fb;border:1px solid #eaeef2;border-radius:10px;padding:16px;text-align:center;">'+
+            '<div style="font-family:\'IBM Plex Mono\',monospace;font-size:30px;font-weight:600;color:#1f2a37;line-height:1;">'+nExpired+'</div>'+
+            '<div style="font-size:11.5px;color:#7a838f;margin-top:6px;">Timer expiries · 시간 초과</div>'+
+          '</div>'+
+        '</div>'+
+        '<div style="font-size:10.5px;letter-spacing:.06em;color:#9aa3b1;font-weight:600;text-transform:uppercase;margin-bottom:6px;">Decision log · 결정 기록&nbsp;&nbsp;—&nbsp;&nbsp;★ marks the AI-error trials (S5 &amp; S9) · order as presented</div>'+
+        logRows+
+        '<div style="margin-top:20px;border:1px solid #e6eaef;border-radius:10px;padding:16px;background:#fbfcfd;">'+
+          '<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px;">'+
+            '<span style="font-size:10.5px;letter-spacing:.08em;color:#8a94a3;font-weight:600;text-transform:uppercase;">Data export · Qualtrics embedded data</span>'+
+            '<span style="font-family:\'IBM Plex Mono\',monospace;font-size:10px;color:#aab2bd;">passed as URL parameters</span>'+
+          '</div>'+
+          '<div style="max-height:120px;overflow:auto;padding:10px 12px;border-radius:7px;background:#1f2a37;color:#c8d3df;font-family:\'IBM Plex Mono\',monospace;font-size:10.5px;line-height:1.7;word-break:break-all;">'+esc(exportQuery)+'</div>'+
+          (counting?'<div style="margin-top:10px;padding:9px 12px;border-radius:7px;background:#eef4fa;border-left:3px solid #2f5e8f;color:#2f5e8f;font-size:12px;line-height:1.5;">Submitting your data and returning to the survey in <b>'+st.returnIn+'s</b>… · 데이터 전송 후 설문으로 돌아갑니다. Please don\'t close this window.</div>':'')+
+          '<div style="display:flex;gap:8px;margin-top:10px;">'+
+            (App.returnUrl?'<button data-goq="1" style="flex:1;padding:12px;border:none;border-radius:8px;background:#2f5e8f;color:#fff;font-family:inherit;font-size:13px;font-weight:600;cursor:pointer;">'+returnBtnLabel+'</button>':'')+
+            '<button data-copy="1" style="flex:1;padding:12px;border:1px solid #d4dae1;border-radius:8px;background:#fff;color:#1f2a37;font-family:inherit;font-size:13px;font-weight:600;cursor:pointer;">'+(st.copied?'Copied ✓':'Copy export data · 복사')+'</button>'+
+          '</div>'+
+          (!App.returnUrl?'<div style="font-size:11px;color:#9aa3b1;margin-top:8px;line-height:1.5;">No <span style="font-family:\'IBM Plex Mono\',monospace;">return_url</span> parameter was provided — add <span style="font-family:\'IBM Plex Mono\',monospace;">?return_url=https://…qualtrics.com/…</span> to enable automatic redirect back to Qualtrics.</div>':'')+
+          (ret&&ret.dropped?'<div style="font-size:11px;color:#7a4e0c;background:#fbf3ec;border-left:3px solid #b9740f;border-radius:6px;padding:8px 11px;margin-top:8px;line-height:1.5;">Return URL exceeded '+App.MAX_URL+' chars — <span style="font-family:\'IBM Plex Mono\',monospace;">events_log</span> was omitted from the redirect (summary fields still sent; <span style="font-family:\'IBM Plex Mono\',monospace;">events_log_dropped=1</span>). Use “Copy export data” to capture the full trace.</div>':'')+
+          (App.debug&&ret?'<div style="font-size:10.5px;color:#9aa3b1;margin-top:8px;font-family:\'IBM Plex Mono\',monospace;">QA · return URL length: '+ret.length+' / cap '+App.MAX_URL+(ret.dropped?' · events_log DROPPED':' · events_log included')+'</div>':'')+
+        '</div>'+
+        '<button data-restart="1" style="margin-top:14px;width:100%;padding:12px;border:1px solid #d4dae1;border-radius:9px;background:#fff;color:#1f2a37;font-family:inherit;font-size:13px;font-weight:600;cursor:pointer;">Restart session · 다시 시작</button>'+
+      '</div>'+
+    '</div>';
+  }
+
+  function render(){
+    var inner;
+    if(App.state.loading || !App.data) inner = loadingView();
+    else if(App.state.view==='results') inner = resultsView();
+    else inner = taskView();
+    document.getElementById('root').innerHTML = shell(inner);
+    bindEvents();
+  }
+
+  function bindEvents(){
+    var root = document.getElementById('root');
+    root.querySelectorAll('[data-toggle]').forEach(function(el){
+      el.addEventListener('click', function(){ togglePanel(el.getAttribute('data-toggle')); });
+    });
+    root.querySelectorAll('[data-decide]').forEach(function(el){
+      el.addEventListener('click', function(){ decide(el.getAttribute('data-decide')); });
+    });
+    var nb = root.querySelector('[data-next]'); if(nb) nb.addEventListener('click', function(){ if(!nb.disabled) next(); });
+    var cp = root.querySelector('[data-copy]'); if(cp) cp.addEventListener('click', copyExport);
+    var gq = root.querySelector('[data-goq]'); if(gq) gq.addEventListener('click', goQualtrics);
+    var rs = root.querySelector('[data-restart]'); if(rs) rs.addEventListener('click', restart);
+  }
+
+  // ---- Boot ----------------------------------------------------------------
+  render(); // loading
+  fetch('assets/scenarios.json').then(function(r){ return r.json(); }).then(function(j){
+    App.data = j.scenarios;
+    var order = makeOrder(App.data);
+    App.data.forEach(function(s){ App.sess[s.id] = { panels_opened:[], decision:null, decision_time_ms:null, timer_expired:false }; });
+    App.scenarioStart = Date.now();
+    App.state.loading = false;
+    App.state.order = order;
+    render();
+    startTimer();
+  }).catch(function(e){ console.error('Failed to load scenarios.json', e); });
+
+})();
+</script>
+</body>
+</html>
