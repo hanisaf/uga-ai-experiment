@@ -130,6 +130,14 @@
         <a href="survey.html?debug=1&timer_sec=90">?debug=1&amp;timer_sec=90</a>
       </div>
       <div class="lk">
+        <div class="desc">OVERTIME state — short timer, no auto-advance <span class="ko">· 제한시간 초과</span></div>
+        <a href="survey.html?debug=1&timer_sec=5">?debug=1&amp;timer_sec=5</a>
+      </div>
+      <div class="lk">
+        <div class="desc">Fixed order for everyone (seeded) <span class="ko">· 고정 순서</span></div>
+        <a href="survey.html?debug=1&order=random">?debug=1&amp;order=random</a>
+      </div>
+      <div class="lk">
         <div class="desc">Full production shape — with <code>guid</code> and <code>return_url</code></div>
         <a href="survey.html?transparent=1&guid=TEST-123&return_url=index.html">?transparent=1&amp;guid=…&amp;return_url=…</a>
       </div>
@@ -162,7 +170,19 @@
           <td><code>timer_sec</code></td>
           <td>int 5–600</td>
           <td>random <span class="mono">U(30,90)</span></td>
-          <td><b>Continuous covariate.</b> Countdown seconds per passenger. Leave <b>unset</b> in production so the app draws a fresh random value per participant; set it only for piloting/QA or a bucketed factorial design.</td>
+          <td><b>Continuous covariate.</b> Countdown seconds per passenger. On expiry the trial is flagged <b>OVERTIME</b> — nothing is auto-decided and nothing is skipped. Leave <b>unset</b> in production so the app draws a fresh random value per participant; set it only for piloting/QA or a bucketed factorial design.</td>
+        </tr>
+        <tr>
+          <td><code>order</code></td>
+          <td><code>random</code> / <code>default</code> / id list</td>
+          <td>per-session shuffle</td>
+          <td>Presentation order. <b>Omit</b> for the production design (fresh constrained shuffle per participant). <code>random</code> = the same constrained shuffle for everyone, from <code>order_seed</code>; <code>default</code> = authored order; a comma-separated id list forces that exact sequence (omitted ids are appended, never dropped).</td>
+        </tr>
+        <tr>
+          <td><code>order_seed</code></td>
+          <td>int</td>
+          <td><code>42</code></td>
+          <td>Seed for <code>order=random</code>. Ignored in every other mode.</td>
         </tr>
         <tr>
           <td><code>guid</code></td>
@@ -197,7 +217,9 @@
       </tbody>
     </table>
     <div class="note warn"><b>Careful with <code>transparent</code>.</b> The default <code>1</code> applies only when the parameter is <b>absent</b>. Any other <i>present</i> value (e.g. <code>2</code>, <code>yes</code>, empty) is treated as <code>0</code> (opaque) — so always pass exactly <code>1</code> or <code>0</code>.</div>
-    <p class="small muted">The app always <b>exports the timer value it actually used</b>, so a self-randomized timer is still recorded per participant — you don't need to pass it in to capture it. <code>timer_sec</code> outside 5–600 is ignored and the app randomizes instead.</p>
+    <div class="note"><b>When the timer runs out.</b> The countdown is a time-pressure manipulation, not a deadline. On expiry the pill reads <span class="mono">OVERTIME · 제한시간 초과</span>, the bar goes full-width dark red, and an inline bilingual notice asks the participant to record a decision — but <b>nothing is decided for them and the task does not advance</b>. All three buttons stay live. The trial is flagged <code>sN_expired=1</code>, so an overtime trial still yields the participant's own decision and can be scored correct. <i>(Earlier builds auto-recorded "Secondary" and skipped ahead.)</i></div>
+    <div class="note"><b>Leave <code>order</code> unset in production.</b> Omitting it gives each participant a fresh shuffle with the AI-error trials (S5, S9) kept out of the first two and last two positions. <code>order=random</code> is the opposite — one fixed sequence for <i>everyone</i> — so use it for pilots and demos, not for a live wave where you want order counterbalanced across participants.</div>
+    <p class="small muted">The app always <b>exports the values it actually used</b>, so a self-randomized timer is still recorded per participant — you don't need to pass it in to capture it. The same applies to ordering: the sequence actually presented always comes back as <code>scenario_order</code>, whichever mode produced it. <code>timer_sec</code> outside 5–600 is ignored and the app randomizes instead; an unrecognised <code>order</code> value falls back to the default per-session shuffle.</p>
   </div>
 
   <!-- RANDOMIZATION -->
@@ -283,19 +305,66 @@ survey.html?transparent=0&timer_sec=90&guid=&lt;ID&gt;&return_url=&lt;RETURN&gt;
       <li><b>URL-length guard.</b> A full record (~4.5&nbsp;KB) sits well under the ~8&nbsp;KB Qualtrics accepts. If the URL ever exceeds 7500&nbsp;chars, only <code>events_log</code> is dropped (summary fields still sent) and <code>events_log_dropped=1</code> is flagged; the full trace stays recoverable via <b>Copy export data</b>.</li>
     </ul>
     <p>To record the data, point <code>return_url</code> at a Qualtrics survey and add an <b>Embedded Data</b> element at the top of its Survey Flow listing every field name below (no values) — Qualtrics auto-fills each from the matching URL parameter. Because <code>guid = ResponseID</code>, <b>join on <code>guid</code></b> to attach it to the participant's response.</p>
+    <div class="note warn"><b>The field list grew from 59 to 85.</b> <code>order_mode</code>, <code>order_seed</code>, and a <code>sN_expired</code> + <code>sN_panels</code> pair for all 12 scenarios are new. Add them to the Embedded Data element before your next collection wave, or those columns arrive empty.</div>
+    <h3>Full field list — paste into the Embedded Data element <span class="ko">85개 필드</span></h3>
+    <pre>guid, timer_sec, transparent, scenario_order, order_mode, order_seed,
+s1_dec,  s1_time,  s1_correct,  s1_difficulty,  s1_expired,  s1_panels,
+s2_dec,  s2_time,  s2_correct,  s2_difficulty,  s2_expired,  s2_panels,
+s3_dec,  s3_time,  s3_correct,  s3_difficulty,  s3_expired,  s3_panels,
+s4_dec,  s4_time,  s4_correct,  s4_difficulty,  s4_expired,  s4_panels,
+s5_dec,  s5_time,  s5_correct,  s5_difficulty,  s5_expired,  s5_panels,
+s6_dec,  s6_time,  s6_correct,  s6_difficulty,  s6_expired,  s6_panels,
+s7_dec,  s7_time,  s7_correct,  s7_difficulty,  s7_expired,  s7_panels,
+s8_dec,  s8_time,  s8_correct,  s8_difficulty,  s8_expired,  s8_panels,
+s9_dec,  s9_time,  s9_correct,  s9_difficulty,  s9_expired,  s9_panels,
+s10_dec, s10_time, s10_correct, s10_difficulty, s10_expired, s10_panels,
+s11_dec, s11_time, s11_correct, s11_difficulty, s11_expired, s11_panels,
+s12_dec, s12_time, s12_correct, s12_difficulty, s12_expired, s12_panels,
+n_correct, n_expired, panels_total,
+s5_override, s9_override,
+events_log, events_log_dropped</pre>
     <table>
       <thead><tr><th>Field(s)</th><th>Contents</th></tr></thead>
       <tbody>
         <tr><td class="mono-cell">guid</td><td>Session ID = the Qualtrics ResponseID you passed in. <b>Join key.</b></td></tr>
-        <tr><td class="mono-cell">timer_sec, transparent, scenario_order</td><td>Condition actually run (timer covariate, transparency IV) and the presented order.</td></tr>
-        <tr><td class="mono-cell">sN_dec, sN_time, sN_correct, sN_difficulty</td><td>Per scenario 1–12: decision, latency (ms), correctness, difficulty rating.</td></tr>
-        <tr><td class="mono-cell">n_correct, n_expired, panels_total</td><td>Session rollups.</td></tr>
+        <tr><td class="mono-cell">timer_sec, transparent, scenario_order</td><td>Condition actually run (timer covariate, transparency IV) and the order actually presented.</td></tr>
+        <tr><td class="mono-cell">order_mode, order_seed</td><td><b>New.</b> How the order was produced (<code>shuffle</code>/<code>random</code>/<code>default</code>/<code>explicit</code>); the seed appears only in <code>random</code> mode.</td></tr>
+        <tr><td class="mono-cell">sN_dec, sN_time, sN_correct, sN_difficulty</td><td>Per scenario 1–12: decision, latency (ms), correctness, difficulty rating. <code>sN_time</code> can exceed <code>timer_sec</code> when the trial went overtime.</td></tr>
+        <tr><td class="mono-cell">sN_expired</td><td><b>New.</b> <code>1</code> if the timer ran out on scenario N. The decision is still the participant's own — an overtime trial can be correct.</td></tr>
+        <tr><td class="mono-cell">sN_panels</td><td><b>New.</b> Distinct case-file panels opened on scenario N (0–4) — per-trial depth of review.</td></tr>
+        <tr><td class="mono-cell">n_correct, n_expired, panels_total</td><td>Session rollups. <code>n_expired</code> now counts overtime trials, <i>not</i> forced-Secondary responses.</td></tr>
         <tr><td class="mono-cell">s5_override, s9_override</td><td>AI-error trials: <code>1</code> = participant correctly overrode the AI.</td></tr>
         <tr><td class="mono-cell">events_log</td><td>JSON blob with the full per-panel timing trace — parse in analysis if you need more than the summary columns.</td></tr>
         <tr><td class="mono-cell">events_log_dropped</td><td><code>1</code> only if the URL guard omitted <code>events_log</code>; absent/<code>0</code> normally.</td></tr>
       </tbody>
     </table>
-    <p class="small muted">Step-by-step Qualtrics setup and the full 59-field paste list: <a href="HOWTO.md">HOWTO.md §5</a>. Instrument source: <a href="survey.html">survey.html</a>. Scenario data: <a href="assets/scenarios.json">assets/scenarios.json</a>.</p>
+    <div class="note"><b>Single-response alternative.</b> If you need the task data on the <i>same</i> Qualtrics row rather than a joined one, embed <code>survey.html</code> in an iframe inside a question and post the results to the parent with <code>window.postMessage</code>, then write them to embedded data with question JavaScript. That's more setup than the join-by-<code>guid</code> flow above, and only worth it if a second linked record is a problem for you.</div>
+    <p class="small muted">Instrument source: <a href="survey.html">survey.html</a>. Scenario data: <a href="assets/scenarios.json">assets/scenarios.json</a>. Implementation notes for developers: <a href="README.md">README.md</a>.</p>
+  </div>
+
+  <!-- QUICK REFERENCE -->
+  <div class="card">
+    <h2><span class="n">▸</span> Quick reference <span class="ko">요약</span></h2>
+    <table>
+      <thead><tr><th>I want to…</th><th>Do this</th></tr></thead>
+      <tbody>
+        <tr><td>See it locally</td><td><code>python3 -m http.server 8731</code>, then open <span class="mono">localhost:8731/survey.html</span></td></tr>
+        <tr><td>Show the AI explanation</td><td><code>?transparent=1</code> (default)</td></tr>
+        <tr><td>Hide the AI explanation</td><td><code>?transparent=0</code></td></tr>
+        <tr><td>Randomized time pressure <i>(recommended)</i></td><td>omit <code>timer_sec</code></td></tr>
+        <tr><td>Fixed time pressure</td><td><code>?timer_sec=NN</code> (5–600)</td></tr>
+        <tr><td>Randomized scenario order <i>(recommended)</i></td><td>omit <code>order</code></td></tr>
+        <tr><td>Same order for every participant</td><td><code>?order=random</code> (optionally <code>&amp;order_seed=NN</code>)</td></tr>
+        <tr><td>Unshuffled authored order</td><td><code>?order=default</code></td></tr>
+        <tr><td>One exact order</td><td><code>?order=3,1,7,…</code></td></tr>
+        <tr><td>See the OVERTIME state quickly</td><td><code>?timer_sec=5&amp;debug=1</code></td></tr>
+        <tr><td>Join data to a survey response</td><td><code>?guid=${e://Field/ResponseID}</code></td></tr>
+        <tr><td>Send participant back to Qualtrics</td><td><code>?return_url=&lt;survey URL&gt;</code> (auto-returns)</td></tr>
+        <tr><td>Return instantly on finish</td><td><code>?return_delay=0</code></td></tr>
+        <tr><td>Keep participant on results screen</td><td><code>?auto_return=0</code> (or <code>debug=1</code>)</td></tr>
+        <tr><td>QA the difficulty labels + export screen</td><td><code>?debug=1</code> — never in production</td></tr>
+      </tbody>
+    </table>
   </div>
 
   <div class="foot">

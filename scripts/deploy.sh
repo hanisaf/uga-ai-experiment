@@ -3,7 +3,7 @@
 # deploy.sh — Deploy the AI Screening Terminal to Firebase Hosting.
 #
 # Deploys only the Hosting target defined in firebase.json (which serves the
-# project root: index.html, survey.html, assets/, HOWTO.md).
+# project root: index.html, survey.html, assets/).
 #
 # Usage:
 #   ./scripts/deploy.sh                 # deploy live to the default project
