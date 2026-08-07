@@ -1,1557 +1,831 @@
 {
- "_note": "Externalized case data for the AI Screening Terminal. Edit this file to change scenarios, photos, or translations without touching the interface code. photo/passport paths may point at any image file (svg/png/jpg). difficulty: expert-rated Easy/Medium/Hard control variable (provisional until Korean expert ratings arrive). crit=true marks the two AI-error trials (S5 false positive, S9 false negative).",
- "scenarios": [
-  {
-   "id": 1,
-   "name": "TANAKA, Hiroshi",
-   "nat": "Japan",
-   "age": 38,
-   "sex": "M",
-   "purpose": "Business — Samsung supplier conf.",
-   "difficulty": "easy",
-   "correct": "a",
-   "crit": false,
-   "photo": "assets/photos/s01.jpg",
-   "passport": "assets/passports/s01.jpg",
-   "panels": [
+  "_note": "Externalized case data for the AI Screening Terminal. Regenerated August 2026 from Full_Survey_Instrument_Aug2026.docx Section 5, which is the source of truth for all scenario content. 15 scenarios. correct: ground-truth decision — 'a' = Allow Entry, 'sr' = Secondary (Recommending Rejection), 'si' = Secondary (Requesting Additional Information); 'Deny Entry' was removed August 6 2026 because frontline officers cannot issue denials. crit=true marks the three AI-error trials: S5 false positive, S9 false negative, S13 false positive. difficulty: expert-rated Easy/Medium/Hard control variable. passport_photo/counter_photo are the two side-by-side images shown in the Document Check panel (photo on file vs. live counter capture); S9's pair intentionally depicts two similar but different people. Rows marked warn=true render as amber callouts and correspond to the docx's explicit warning markers.",
+  "scenarios": [
     {
-     "id": "profile",
-     "label": "Traveler Profile",
-     "ko": "여행자 정보",
-     "rows": [
-      {
-       "l": "Name",
-       "v": "TANAKA, Hiroshi"
-      },
-      {
-       "l": "Nationality",
-       "v": "Japan"
-      },
-      {
-       "l": "Age / Sex",
-       "v": "38 / M"
-      },
-      {
-       "l": "Purpose",
-       "v": "Business — Samsung supplier conf."
-      },
-      {
-       "l": "Intended stay",
-       "v": "4 days"
-      },
-      {
-       "l": "Accommodation",
-       "v": "Grand Hyatt Seoul"
+      "id": 1,
+      "name": "TANAKA, Hiroshi",
+      "nat": "Japan",
+      "age": 38,
+      "sex": "M",
+      "purpose": "Business — supplier conference",
+      "difficulty": "easy",
+      "correct": "a",
+      "crit": false,
+      "passport_photo": "assets/people/s01_passport.jpg",
+      "counter_photo": "assets/people/s01_counter.jpg",
+      "panels": [
+        { "id": "profile", "label": "Traveler Profile", "ko": "여행자 정보", "rows": [
+          { "l": "Name", "v": "TANAKA, Hiroshi" },
+          { "l": "Nationality", "v": "Japan" },
+          { "l": "Age / Sex", "v": "38 / M" },
+          { "l": "Purpose", "v": "Business — supplier conference (Samsung Electronics, Suwon)" },
+          { "l": "Intended stay", "v": "4 days" },
+          { "l": "Accommodation", "v": "Grand Hyatt Seoul (confirmed booking)" }
+        ]},
+        { "id": "doc", "label": "Document Check", "ko": "서류 심사", "rows": [
+          { "l": "Passport", "v": "Valid · Exp 2029-04-15" },
+          { "l": "Authentication", "v": "No anomalies detected (UV/IR/visible light check)" },
+          { "l": "Visa", "v": "Visa-free entry (Japan–Korea ordinary passport agreement — up to 90 days)" },
+          { "l": "Biometric", "v": "97.8% facial match  ✓" },
+          { "l": "Arrival card", "v": "Completed — hotel and contact details present" }
+        ]},
+        { "id": "db", "label": "ICRM / Database", "ko": "출입국 기록", "rows": [
+          { "l": "Entry bans", "v": "None" },
+          { "l": "Prior violations", "v": "None" },
+          { "l": "Overstay history", "v": "None" },
+          { "l": "Prior visits", "v": "12 visits in past 3 years (3–5 days each, consistent pattern)" }
+        ]},
+        { "id": "apis", "label": "APIS / Intelligence", "ko": "사전입국정보", "rows": [
+          { "l": "Flight route", "v": "Tokyo Narita → Incheon (KE 714)" },
+          { "l": "Employer", "v": "Murata Manufacturing Co., Ltd. — letter submitted" },
+          { "l": "Return ticket", "v": "Confirmed (KE 715, departure in 4 days)" },
+          { "l": "Financial", "v": "Corporate credit card on file" }
+        ]}
+      ],
+      "ai": {
+        "score": 12,
+        "rec": "ALLOW ENTRY",
+        "recKo": "입국 허가",
+        "level": "low",
+        "conf": 94,
+        "factors": [
+          { "en": "Consistent business travel pattern over 3 years", "ko": "3년간 일관된 출장 방문 기록" },
+          { "en": "Verified employer and return ticket", "ko": "고용주 및 귀국 항공권 확인됨" },
+          { "en": "No adverse records in any database", "ko": "모든 데이터베이스에 불리한 기록 없음" }
+        ]
       }
-     ]
     },
     {
-     "id": "doc",
-     "label": "Document Check",
-     "ko": "서류 심사",
-     "rows": [
-      {
-       "l": "Passport",
-       "v": "Valid · Exp 2029-04-15"
-      },
-      {
-       "l": "Authentication",
-       "v": "No anomalies (UV/IR/visible)"
-      },
-      {
-       "l": "Visa",
-       "v": "B-1 Business · valid"
-      },
-      {
-       "l": "Biometric",
-       "v": "97.8% facial match"
+      "id": 2,
+      "name": "NGUYEN, Thi Lan",
+      "nat": "Vietnam",
+      "age": 26,
+      "sex": "F",
+      "purpose": "Tourism",
+      "difficulty": "medium",
+      "correct": "si",
+      "crit": false,
+      "passport_photo": "assets/people/s02_passport.jpg",
+      "counter_photo": "assets/people/s02_counter.jpg",
+      "panels": [
+        { "id": "profile", "label": "Traveler Profile", "ko": "여행자 정보", "rows": [
+          { "l": "Name", "v": "NGUYEN, Thi Lan" },
+          { "l": "Nationality", "v": "Vietnam" },
+          { "l": "Age / Sex", "v": "26 / F" },
+          { "l": "Purpose", "v": "Tourism" },
+          { "l": "Intended stay", "v": "14 days" },
+          { "l": "Accommodation", "v": "Guesthouse, Hongdae (paid in advance, cash)" }
+        ]},
+        { "id": "doc", "label": "Document Check", "ko": "서류 심사", "rows": [
+          { "l": "Passport", "v": "Valid · Exp 2027-08-20" },
+          { "l": "Authentication", "v": "No anomalies detected" },
+          { "l": "Visa", "v": "Tourist (C-3) — Valid" },
+          { "l": "Biometric", "v": "96.2% facial match  ✓" },
+          { "l": "Arrival card", "v": "Completed — guesthouse address listed" }
+        ]},
+        { "id": "db", "label": "ICRM / Database", "ko": "출입국 기록", "rows": [
+          { "l": "Entry bans", "v": "None" },
+          { "l": "Prior violations", "v": "None" },
+          { "l": "Overstay history", "v": "None" },
+          { "l": "Prior visits", "v": "No prior visits to Korea" },
+          { "warn": true, "v": "NATIONALITY ALERT: Vietnam is designated under MoJ Notice 2011-534 (high illegal stay rate list). Enhanced documentation review is standard procedure." }
+        ]},
+        { "id": "apis", "label": "APIS / Intelligence", "ko": "사전입국정보", "rows": [
+          { "l": "Flight route", "v": "Ho Chi Minh City → Incheon (OZ 727)" },
+          { "l": "Booking date", "v": "2 days before departure (last-minute)" },
+          { "l": "Return ticket", "v": "Not confirmed in APIS" },
+          { "l": "Booked via", "v": "Hanoi-based travel agent — no corporate affiliation" }
+        ]}
+      ],
+      "ai": {
+        "score": 56,
+        "rec": "REFER TO SECONDARY SCREENING",
+        "recKo": "2차 심사 회부",
+        "level": "med",
+        "conf": 63,
+        "factors": [
+          { "en": "First visit; extended stay relative to stated tourism purpose", "ko": "첫 방문; 신고된 관광 목적 대비 장기 체류" },
+          { "en": "Last-minute booking is a risk indicator", "ko": "출발 직전 예약은 위험 지표" },
+          { "en": "No confirmed return ticket", "ko": "귀국 항공권 미확인" },
+          { "en": "Cash-only guesthouse booking", "ko": "현금 결제 게스트하우스 예약" }
+        ]
       }
-     ]
     },
     {
-     "id": "db",
-     "label": "ICRM / Database",
-     "ko": "출입국 기록",
-     "rows": [
-      {
-       "l": "Entry bans",
-       "v": "None"
-      },
-      {
-       "l": "Prior violations",
-       "v": "None"
-      },
-      {
-       "l": "Prior visits",
-       "v": "12 visits / 3 yrs (3–5 days, consistent)"
+      "id": 3,
+      "name": "ADEYEMI, Femi",
+      "nat": "Nigeria",
+      "age": 44,
+      "sex": "M",
+      "purpose": "Transit to Canada (declared)",
+      "difficulty": "easy",
+      "correct": "sr",
+      "crit": false,
+      "passport_photo": "assets/people/s03_passport.jpg",
+      "counter_photo": "assets/people/s03_counter.jpg",
+      "panels": [
+        { "id": "profile", "label": "Traveler Profile", "ko": "여행자 정보", "rows": [
+          { "l": "Name", "v": "ADEYEMI, Femi" },
+          { "l": "Nationality", "v": "Nigeria" },
+          { "l": "Age / Sex", "v": "44 / M" },
+          { "l": "Purpose", "v": "Transit to Canada (declared)" },
+          { "l": "Intended stay", "v": "None — transit only" },
+          { "l": "Accommodation", "v": "N/A — transit claim" }
+        ]},
+        { "id": "doc", "label": "Document Check", "ko": "서류 심사", "rows": [
+          { "l": "Passport", "v": "Valid · Exp 2028-02-10" },
+          { "l": "Authentication", "v": "No anomalies detected" },
+          { "l": "Visa", "v": "No Korean visa (transit exemption claimed)" },
+          { "l": "Canadian visa", "v": "NOT PRESENT in travel documents" },
+          { "l": "Biometric", "v": "95.1% facial match  ✓" }
+        ]},
+        { "id": "db", "label": "ICRM / Database", "ko": "출입국 기록", "rows": [
+          { "l": "Entry bans", "v": "None" },
+          { "l": "Prior violations", "v": "None" },
+          { "l": "Overstay history", "v": "None" },
+          { "l": "Prior Korea visit", "v": "One visit 2 years ago — 48 hrs; departed to Philippines (not Canada)" },
+          { "warn": true, "v": "NATIONALITY ALERT: Nigeria is designated under MoJ Notice 2011-534 (high illegal stay rate list). Enhanced documentation review is standard procedure." }
+        ]},
+        { "id": "apis", "label": "APIS / Intelligence", "ko": "사전입국정보", "rows": [
+          { "l": "Flight route", "v": "Lagos → Incheon (only leg — no onward booking confirmed)" },
+          { "l": "Onward ticket", "v": "NO confirmed onward ticket to Canada" },
+          { "l": "Canadian visa", "v": "Not verified through APIS" },
+          { "l": "Pattern", "v": "Prior 'transit' also had no confirmed onward flight" }
+        ]}
+      ],
+      "ai": {
+        "score": 84,
+        "rec": "REFER TO SECONDARY — RECOMMENDING REJECTION",
+        "recKo": "2차 심사 회부 — 거부 권고",
+        "level": "high",
+        "conf": 89,
+        "factors": [
+          { "en": "No valid onward ticket to declared destination", "ko": "신고된 목적지행 유효 항공권 없음" },
+          { "en": "No Canadian visa present (required for Nigerian passport holders)", "ko": "캐나다 비자 미소지 (나이지리아 여권 소지자 필수)" },
+          { "en": "Prior 'transit' claim also had no confirmed onward journey", "ko": "과거 '경유' 주장 시에도 확인된 연결 여정 없음" },
+          { "en": "Pattern consistent with unauthorized entry attempt", "ko": "불법 입국 시도와 일치하는 패턴" }
+        ]
       }
-     ]
     },
     {
-     "id": "apis",
-     "label": "APIS / Intelligence",
-     "ko": "사전입국정보",
-     "rows": [
-      {
-       "l": "Flight route",
-       "v": "Tokyo NRT → Incheon KE714"
-      },
-      {
-       "l": "Employer",
-       "v": "Murata Mfg — letter on file"
-      },
-      {
-       "l": "Return ticket",
-       "v": "KE715 confirmed, 4 days"
+      "id": 4,
+      "name": "CHEN, Margaret Yun-Ling",
+      "nat": "Canada",
+      "age": 54,
+      "sex": "F",
+      "purpose": "Medical — orthopedic follow-up",
+      "difficulty": "easy",
+      "correct": "a",
+      "crit": false,
+      "passport_photo": "assets/people/s04_passport.jpg",
+      "counter_photo": "assets/people/s04_counter.jpg",
+      "panels": [
+        { "id": "profile", "label": "Traveler Profile", "ko": "여행자 정보", "rows": [
+          { "l": "Name", "v": "CHEN, Margaret Yun-Ling" },
+          { "l": "Nationality", "v": "Canada" },
+          { "l": "Age / Sex", "v": "54 / F" },
+          { "l": "Purpose", "v": "Medical — orthopedic follow-up surgery (Asan Medical Center)" },
+          { "l": "Intended stay", "v": "10 days" },
+          { "l": "Accommodation", "v": "Patient residence, Asan Medical Center (provided)" }
+        ]},
+        { "id": "doc", "label": "Document Check", "ko": "서류 심사", "rows": [
+          { "l": "Passport", "v": "Valid · Exp 2030-11-05" },
+          { "l": "Authentication", "v": "No anomalies detected" },
+          { "l": "Visa", "v": "Medical (G-1) — Valid" },
+          { "l": "Biometric", "v": "98.7% facial match  ✓" },
+          { "l": "Arrival card", "v": "Completed — medical facility address" }
+        ]},
+        { "id": "db", "label": "ICRM / Database", "ko": "출입국 기록", "rows": [
+          { "l": "Entry bans", "v": "None" },
+          { "l": "Prior violations", "v": "None" },
+          { "l": "Prior visits", "v": "2 prior visits: 3 months and 6 months ago (same medical series)" }
+        ]},
+        { "id": "apis", "label": "APIS / Intelligence", "ko": "사전입국정보", "rows": [
+          { "l": "Hospital invite", "v": "Asan Medical Center (verified in APIS — Dr. Lee, Orthopedic Dept.)" },
+          { "l": "Return ticket", "v": "Confirmed (departure in 10 days, AC 064)" },
+          { "l": "Travel insurance", "v": "Comprehensive coverage confirmed" },
+          { "l": "Flight route", "v": "Toronto → Incheon (Air Canada AC 063)" }
+        ]}
+      ],
+      "ai": {
+        "score": 19,
+        "rec": "ALLOW ENTRY",
+        "recKo": "입국 허가",
+        "level": "low",
+        "conf": 91,
+        "factors": [
+          { "en": "Medical visit pattern consistent with prior documented trips", "ko": "이전 기록된 방문과 일치하는 의료 목적 방문 패턴" },
+          { "en": "Hospital invitation verified through APIS", "ko": "병원 초청장 APIS 확인됨" },
+          { "en": "Return ticket and insurance confirmed", "ko": "귀국 항공권 및 여행자 보험 확인됨" },
+          { "en": "No adverse records", "ko": "불리한 기록 없음" }
+        ]
       }
-     ]
+    },
+    {
+      "id": 5,
+      "name": "LIU, Wei",
+      "nat": "China",
+      "age": 29,
+      "sex": "M",
+      "purpose": "Tourism",
+      "difficulty": "hard",
+      "correct": "a",
+      "crit": true,
+      "passport_photo": "assets/people/s05_passport.jpg",
+      "counter_photo": "assets/people/s05_counter.jpg",
+      "panels": [
+        { "id": "profile", "label": "Traveler Profile", "ko": "여행자 정보", "rows": [
+          { "l": "Name", "v": "LIU, Wei" },
+          { "l": "Nationality", "v": "China" },
+          { "l": "Age / Sex", "v": "29 / M" },
+          { "l": "Purpose", "v": "Tourism" },
+          { "l": "Intended stay", "v": "7 days" },
+          { "l": "Accommodation", "v": "Hotel Lotte, Seoul (confirmed booking)" }
+        ]},
+        { "id": "doc", "label": "Document Check", "ko": "서류 심사", "rows": [
+          { "l": "Passport", "v": "Valid · Exp 2028-09-12" },
+          { "l": "Authentication", "v": "No anomalies detected" },
+          { "l": "Visa", "v": "Tourist (C-3) — Valid" },
+          { "l": "Biometric", "v": "98.4% facial match  ✓" },
+          { "l": "Arrival card", "v": "Completed — hotel address listed" }
+        ]},
+        { "id": "db", "label": "ICRM / Database", "ko": "출입국 기록", "rows": [
+          { "l": "Entry bans", "v": "None" },
+          { "l": "Prior violations", "v": "None" },
+          { "l": "Overstay history", "v": "None" },
+          { "l": "Prior visits", "v": "4 visits in past 18 months (7, 5, 4, 3 days each — all departed on time)" },
+          { "warn": true, "v": "NATIONALITY ALERT: China is designated under MoJ Notice 2011-534 (high illegal stay rate list). Enhanced documentation review is standard procedure." }
+        ]},
+        { "id": "apis", "label": "APIS / Intelligence", "ko": "사전입국정보", "rows": [
+          { "l": "Flight route", "v": "Beijing → Incheon (CA 121, direct)" },
+          { "l": "Employer letter", "v": "Tsinghua University, Beijing — staff employment confirmed (in APIS)" },
+          { "l": "Return ticket", "v": "Confirmed (CA 122, departure in 7 days)" },
+          { "l": "Partner record", "v": "Kim Soo-jin (Korean national) — personal letter in APIS explaining frequency of visits; relationship documentation included" },
+          { "l": "Prior departures", "v": "On-time departures confirmed for all 4 prior visits" }
+        ]}
+      ],
+      "ai": {
+        "score": 67,
+        "rec": "REFER TO SECONDARY SCREENING",
+        "recKo": "2차 심사 회부",
+        "level": "med",
+        "conf": 68,
+        "factors": [
+          { "en": "4 short-stay visits in 18 months — pattern may indicate irregular employment activity", "ko": "18개월간 4회 단기 방문 — 불법 취업 활동 가능성" },
+          { "en": "Frequent repeat visits without long stays", "ko": "장기 체류 없는 잦은 반복 방문" },
+          { "en": "Initial employer scan did not return verified result (full letter in APIS requires manual review)", "ko": "초기 고용주 조회 미확인 (APIS 내 전체 서한은 수동 검토 필요)" }
+        ]
+      }
+    },
+    {
+      "id": 6,
+      "name": "MITCHELL, Robert James",
+      "nat": "United States",
+      "age": 68,
+      "sex": "M",
+      "purpose": "Tourism — heritage group tour",
+      "difficulty": "easy",
+      "correct": "a",
+      "crit": false,
+      "passport_photo": "assets/people/s06_passport.jpg",
+      "counter_photo": "assets/people/s06_counter.jpg",
+      "panels": [
+        { "id": "profile", "label": "Traveler Profile", "ko": "여행자 정보", "rows": [
+          { "l": "Name", "v": "MITCHELL, Robert James" },
+          { "l": "Nationality", "v": "United States" },
+          { "l": "Age / Sex", "v": "68 / M" },
+          { "l": "Purpose", "v": "Tourism — Korean cultural heritage group tour" },
+          { "l": "Intended stay", "v": "12 days" },
+          { "l": "Accommodation", "v": "Lotte Hotel Seoul (group booking)" }
+        ]},
+        { "id": "doc", "label": "Document Check", "ko": "서류 심사", "rows": [
+          { "l": "Passport", "v": "Valid · Exp 2031-01-20" },
+          { "l": "Authentication", "v": "No anomalies detected" },
+          { "l": "Visa", "v": "Visa waiver (US–Korea reciprocal agreement)" },
+          { "l": "Biometric", "v": "96.8% facial match  ✓" },
+          { "l": "Arrival card", "v": "Completed — tour hotel listed" }
+        ]},
+        { "id": "db", "label": "ICRM / Database", "ko": "출입국 기록", "rows": [
+          { "l": "Entry bans", "v": "None" },
+          { "l": "Prior violations", "v": "None" },
+          { "l": "Prior visits", "v": "First visit to Korea" }
+        ]},
+        { "id": "apis", "label": "APIS / Intelligence", "ko": "사전입국정보", "rows": [
+          { "l": "Tour operator", "v": "Korea Heritage Discovery Tours — group of 24 passengers (APIS-confirmed)" },
+          { "l": "Return ticket", "v": "Confirmed (UA 892, 12 days out)" },
+          { "l": "Travel insurance", "v": "Group policy confirmed" },
+          { "l": "Flight route", "v": "Chicago O'Hare → Incheon (UA 891)" }
+        ]}
+      ],
+      "ai": {
+        "score": 8,
+        "rec": "ALLOW ENTRY",
+        "recKo": "입국 허가",
+        "level": "low",
+        "conf": 97,
+        "factors": [
+          { "en": "First-time tourist with verified group tour", "ko": "첫 방문 관광객, 단체 관광 확인됨" },
+          { "en": "Return ticket and insurance confirmed", "ko": "귀국 항공권 및 보험 확인됨" },
+          { "en": "No adverse records", "ko": "불리한 기록 없음" },
+          { "en": "Reciprocal visa waiver agreement applies", "ko": "상호 비자 면제 협정 적용 대상" }
+        ]
+      }
+    },
+    {
+      "id": 7,
+      "name": "SANTOS, Maria Elena C.",
+      "nat": "Philippines",
+      "age": 24,
+      "sex": "F",
+      "purpose": "Working Holiday (approved)",
+      "difficulty": "easy",
+      "correct": "a",
+      "crit": false,
+      "passport_photo": "assets/people/s07_passport.jpg",
+      "counter_photo": "assets/people/s07_counter.jpg",
+      "panels": [
+        { "id": "profile", "label": "Traveler Profile", "ko": "여행자 정보", "rows": [
+          { "l": "Name", "v": "SANTOS, Maria Elena C." },
+          { "l": "Nationality", "v": "Philippines" },
+          { "l": "Age / Sex", "v": "24 / F" },
+          { "l": "Purpose", "v": "Working Holiday (approved program)" },
+          { "l": "Intended stay", "v": "180 days (WHV terms)" },
+          { "l": "Accommodation", "v": "Shared apartment, Mapo-gu, Seoul (pre-arranged)" }
+        ]},
+        { "id": "doc", "label": "Document Check", "ko": "서류 심사", "rows": [
+          { "l": "Passport", "v": "Valid · Exp 2029-03-18" },
+          { "l": "Authentication", "v": "No anomalies detected" },
+          { "l": "Visa", "v": "Working Holiday H-1 — Valid for 1 year (Ministry of Justice pre-approved)" },
+          { "l": "Biometric", "v": "97.3% facial match  ✓" },
+          { "l": "Arrival card", "v": "Completed — apartment address listed" }
+        ]},
+        { "id": "db", "label": "ICRM / Database", "ko": "출입국 기록", "rows": [
+          { "l": "Entry bans", "v": "None" },
+          { "l": "Prior violations", "v": "None" },
+          { "l": "Prior visits", "v": "1 prior tourist visit 3 years ago — 7 days, clean departure" },
+          { "warn": true, "v": "NATIONALITY ALERT: Philippines is designated under MoJ Notice 2011-534 (high illegal stay rate list). Enhanced documentation review is standard procedure." }
+        ]},
+        { "id": "apis", "label": "APIS / Intelligence", "ko": "사전입국정보", "rows": [
+          { "l": "WHV status", "v": "Application pre-screened and approved by Ministry of Justice (APIS confirmed)" },
+          { "l": "Return option", "v": "Return flight booking capability confirmed (open-jaw ticket)" },
+          { "l": "Funds", "v": "₩3,200,000 confirmed on declaration (meets WHV requirement)" },
+          { "l": "Flight route", "v": "Manila → Incheon (PR 468)" }
+        ]}
+      ],
+      "ai": {
+        "score": 28,
+        "rec": "ALLOW ENTRY",
+        "recKo": "입국 허가",
+        "level": "low",
+        "conf": 87,
+        "factors": [
+          { "en": "Valid Working Holiday Visa with Ministry pre-approval", "ko": "법무부 사전승인 워킹홀리데이 비자 유효" },
+          { "en": "Sufficient funds declared and confirmed", "ko": "충분한 자금 신고 및 확인됨" },
+          { "en": "Clean prior visit record", "ko": "이전 방문 기록 이상 없음" },
+          { "en": "Return flight option confirmed", "ko": "귀국 항공편 옵션 확인됨" }
+        ]
+      }
+    },
+    {
+      "id": 8,
+      "name": "PETROV, Aleksei Nikolaevich",
+      "nat": "Russia",
+      "age": 21,
+      "sex": "M",
+      "purpose": "Study — Yonsei University",
+      "difficulty": "medium",
+      "correct": "si",
+      "crit": false,
+      "passport_photo": "assets/people/s08_passport.jpg",
+      "counter_photo": "assets/people/s08_counter.jpg",
+      "panels": [
+        { "id": "profile", "label": "Traveler Profile", "ko": "여행자 정보", "rows": [
+          { "l": "Name", "v": "PETROV, Aleksei Nikolaevich" },
+          { "l": "Nationality", "v": "Russia" },
+          { "l": "Age / Sex", "v": "21 / M" },
+          { "l": "Purpose", "v": "Study — Yonsei University, Seoul" },
+          { "l": "Intended stay", "v": "6 months (semester)" },
+          { "l": "Accommodation", "v": "Yonsei International House (dormitory)" }
+        ]},
+        { "id": "doc", "label": "Document Check", "ko": "서류 심사", "rows": [
+          { "l": "Passport", "v": "Valid · Exp 2028-07-04" },
+          { "l": "Authentication", "v": "No anomalies detected" },
+          { "l": "Visa", "v": "Student D-2 — Valid" },
+          { "l": "Biometric", "v": "95.9% facial match  ✓" },
+          { "l": "Arrival card", "v": "Completed — dormitory address listed" }
+        ]},
+        { "id": "db", "label": "ICRM / Database", "ko": "출입국 기록", "rows": [
+          { "l": "Entry bans", "v": "None" },
+          { "l": "Prior violations", "v": "None" },
+          { "l": "Prior visits", "v": "No prior visits to Korea" }
+        ]},
+        { "id": "apis", "label": "APIS / Intelligence", "ko": "사전입국정보", "rows": [
+          { "l": "Acceptance letter", "v": "Yonsei University — semester start: March 2 (APIS confirmed)" },
+          { "l": "Entry date", "v": "February 15 — 15 days before semester start" },
+          { "l": "Dorm move-in", "v": "February 28 (per Yonsei international housing portal)" },
+          { "l": "Return option", "v": "Return ticket for August (post-semester)" }
+        ]}
+      ],
+      "ai": {
+        "score": 52,
+        "rec": "REFER TO SECONDARY SCREENING",
+        "recKo": "2차 심사 회부",
+        "level": "med",
+        "conf": 71,
+        "factors": [
+          { "en": "Entry date is 15 days prior to semester start date", "ko": "학기 시작 15일 전 입국" },
+          { "en": "Dormitory move-in date is 13 days after arrival — accommodation gap", "ko": "기숙사 입주일이 입국 13일 후 — 숙소 공백" },
+          { "en": "Purpose of early arrival not documented in APIS", "ko": "조기 입국 사유 APIS에 미기재" },
+          { "en": "Standard student entry timing inconsistency", "ko": "일반적인 유학생 입국 시기와 불일치" }
+        ]
+      }
+    },
+    {
+      "id": 9,
+      "name": "CHAROENPORN, Siriwan",
+      "nat": "Thailand",
+      "age": 26,
+      "sex": "F",
+      "purpose": "Tourism",
+      "difficulty": "hard",
+      "correct": "sr",
+      "crit": true,
+      "passport_photo": "assets/people/s09_passport.jpg",
+      "counter_photo": "assets/people/s09_counter.jpg",
+      "panels": [
+        { "id": "profile", "label": "Traveler Profile", "ko": "여행자 정보", "rows": [
+          { "l": "Name", "v": "CHAROENPORN, Siriwan" },
+          { "l": "Nationality", "v": "Thailand" },
+          { "l": "Age / Sex", "v": "26 / F" },
+          { "l": "Purpose", "v": "Tourism" },
+          { "l": "Intended stay", "v": "6 days" },
+          { "l": "Accommodation", "v": "Myeongdong guesthouse (confirmed)" }
+        ]},
+        { "id": "doc", "label": "Document Check", "ko": "서류 심사", "rows": [
+          { "l": "Passport", "v": "Validity period: valid through 2029-11-22" },
+          { "warn": true, "v": "PHYSICAL NOTE: Fresh laminate on biographical page observed. UV fluorescence pattern on biographical page is inconsistent with adjacent pages — possible recent alteration. Full forensic examination recommended." },
+          { "l": "Entry status", "v": "Visa-free entry (Thailand–Korea agreement — up to 90 days). System entitlement confirmed, but physical document shows anomalies." },
+          { "l": "Biometric", "v": "89.3% facial match (within threshold but below average — flag for manual review)" },
+          { "l": "Arrival card", "v": "Completed — guesthouse address listed" }
+        ]},
+        { "id": "db", "label": "ICRM / Database", "ko": "출입국 기록", "rows": [
+          { "l": "Entry bans", "v": "None (exact name)" },
+          { "l": "Prior violations", "v": "None (exact name)" },
+          { "warn": true, "v": "ICRM NAME VARIANT ALERT: Name variant 'Charoenphon, Siriwan' (alternate transliteration) matches a DEPORTATION record from 24 months ago for overstay (273 days). Passport photo for that record matches present traveler. Different name spelling only." },
+          { "l": "Prior visits", "v": "No prior visits recorded under current name" },
+          { "warn": true, "v": "NATIONALITY ALERT: Thailand is designated under MoJ Notice 2011-534 (high illegal stay rate list). Enhanced documentation review is standard procedure." }
+        ]},
+        { "id": "apis", "label": "APIS / Intelligence", "ko": "사전입국정보", "rows": [
+          { "l": "Flight route", "v": "Bangkok → Incheon (OZ 753, direct)" },
+          { "l": "Return ticket", "v": "Confirmed (TG 657, 6 days out)" },
+          { "l": "Travel history", "v": "Bangkok departure is first use of current passport number" },
+          { "l": "Booking", "v": "Booking made 5 days before departure" }
+        ]}
+      ],
+      "ai": {
+        "score": 31,
+        "rec": "ALLOW ENTRY",
+        "recKo": "입국 허가",
+        "level": "low",
+        "conf": 78,
+        "factors": [
+          { "en": "Short-stay tourism — low risk profile", "ko": "단기 관광 — 저위험 프로필" },
+          { "en": "Visa-free entry entitlement confirmed", "ko": "무비자 입국 자격 확인됨" },
+          { "en": "No adverse records under present name", "ko": "현재 이름으로 불리한 기록 없음" },
+          { "en": "Standard travel pattern for Thai tourists", "ko": "태국 관광객의 일반적인 여행 패턴" }
+        ]
+      }
+    },
+    {
+      "id": 10,
+      "name": "AHMED, Khurram Bashir",
+      "nat": "Pakistan",
+      "age": 48,
+      "sex": "M",
+      "purpose": "Business — trade conference",
+      "difficulty": "medium",
+      "correct": "si",
+      "crit": false,
+      "passport_photo": "assets/people/s10_passport.jpg",
+      "counter_photo": "assets/people/s10_counter.jpg",
+      "panels": [
+        { "id": "profile", "label": "Traveler Profile", "ko": "여행자 정보", "rows": [
+          { "l": "Name", "v": "AHMED, Khurram Bashir" },
+          { "l": "Nationality", "v": "Pakistan" },
+          { "l": "Age / Sex", "v": "48 / M" },
+          { "l": "Purpose", "v": "Business — Korea-Pakistan Trade Conference" },
+          { "l": "Intended stay", "v": "5 days" },
+          { "l": "Accommodation", "v": "Coex InterContinental Hotel (confirmed booking)" }
+        ]},
+        { "id": "doc", "label": "Document Check", "ko": "서류 심사", "rows": [
+          { "l": "Passport", "v": "Valid · Exp 2027-06-01" },
+          { "l": "Authentication", "v": "No anomalies detected" },
+          { "l": "Visa", "v": "Business (C-2) — Valid" },
+          { "l": "Biometric", "v": "97.1% facial match  ✓" },
+          { "l": "Arrival card", "v": "Completed — hotel address listed" }
+        ]},
+        { "id": "db", "label": "ICRM / Database", "ko": "출입국 기록", "rows": [
+          { "l": "Entry bans", "v": "None" },
+          { "l": "Prior violations", "v": "None" },
+          { "l": "Prior visits", "v": "2 prior business visits (3 and 2 years ago, 4 and 6 days each, clean departures)" },
+          { "warn": true, "v": "NATIONALITY ALERT: Pakistan is designated under MoJ Notice 2011-534 (high illegal stay rate list). Ordinary-passport visa waiver is currently suspended. Enhanced documentation review is standard procedure." }
+        ]},
+        { "id": "apis", "label": "APIS / Intelligence", "ko": "사전입국정보", "rows": [
+          { "l": "Conference invite", "v": "Korea Chamber of Commerce letter provided — event not independently registered in APIS database" },
+          { "l": "Event check", "v": "Standard APIS event registry does not confirm 'Korea-Pakistan Trade Conference' as a scheduled event this week. Smaller bilateral events are sometimes not listed." },
+          { "l": "Business address", "v": "Karachi import firm — cannot be independently verified through standard channels" },
+          { "l": "Return ticket", "v": "Confirmed (PK 891, 5 days out)" }
+        ]}
+      ],
+      "ai": {
+        "score": 61,
+        "rec": "REFER TO SECONDARY SCREENING",
+        "recKo": "2차 심사 회부",
+        "level": "med",
+        "conf": 66,
+        "factors": [
+          { "en": "Conference event cannot be independently verified through APIS event registry", "ko": "APIS 행사 등록부를 통한 회의 독립 확인 불가" },
+          { "en": "Business address in Pakistan not verifiable through standard channels", "ko": "파키스탄 사업장 주소 표준 경로로 확인 불가" },
+          { "en": "Limited visit history relative to claimed regular trade relationship", "ko": "주장하는 정기 교역 관계 대비 제한적인 방문 기록" }
+        ]
+      }
+    },
+    {
+      "id": 11,
+      "name": "RODRIGUEZ, Ana Patricia",
+      "nat": "Mexico",
+      "age": 29,
+      "sex": "F",
+      "purpose": "Tourism — K-pop concert",
+      "difficulty": "easy",
+      "correct": "a",
+      "crit": false,
+      "passport_photo": "assets/people/s11_passport.jpg",
+      "counter_photo": "assets/people/s11_counter.jpg",
+      "panels": [
+        { "id": "profile", "label": "Traveler Profile", "ko": "여행자 정보", "rows": [
+          { "l": "Name", "v": "RODRIGUEZ, Ana Patricia" },
+          { "l": "Nationality", "v": "Mexico" },
+          { "l": "Age / Sex", "v": "29 / F" },
+          { "l": "Purpose", "v": "Tourism — K-pop concert (BTS World Tour, KSPO Dome, Seoul)" },
+          { "l": "Intended stay", "v": "7 days" },
+          { "l": "Accommodation", "v": "Myeongdong Boutique Hotel (confirmed booking)" }
+        ]},
+        { "id": "doc", "label": "Document Check", "ko": "서류 심사", "rows": [
+          { "l": "Passport", "v": "Valid · Exp 2031-03-08" },
+          { "l": "Authentication", "v": "No anomalies detected" },
+          { "l": "Visa", "v": "Visa-free entry (Mexico–Korea ordinary passport agreement — up to 3 months)" },
+          { "l": "Biometric", "v": "98.3% facial match  ✓" },
+          { "l": "Arrival card", "v": "Completed — hotel address listed" }
+        ]},
+        { "id": "db", "label": "ICRM / Database", "ko": "출입국 기록", "rows": [
+          { "l": "Entry bans", "v": "None" },
+          { "l": "Prior violations", "v": "None" },
+          { "l": "Overstay history", "v": "None" },
+          { "l": "Prior visits", "v": "2 prior tourist visits (2 and 1 year ago, 6 days each — consistent pattern of K-pop tourism)" }
+        ]},
+        { "id": "apis", "label": "APIS / Intelligence", "ko": "사전입국정보", "rows": [
+          { "l": "Concert ticket", "v": "BTS World Tour ticket confirmed via APIS — event registered for this weekend at KSPO Dome, Olympic Park" },
+          { "l": "Return ticket", "v": "Confirmed (AM 097, 7 days out)" },
+          { "l": "Financial", "v": "Sufficient funds declared; travel savings account documented" },
+          { "l": "Social media", "v": "Public profile consistent with K-pop fandom travel" }
+        ]}
+      ],
+      "ai": {
+        "score": 11,
+        "rec": "ALLOW ENTRY",
+        "recKo": "입국 허가",
+        "level": "low",
+        "conf": 96,
+        "factors": [
+          { "en": "Consistent with prior tourist visit pattern", "ko": "이전 관광 방문 패턴과 일치" },
+          { "en": "Event ticket and return flight confirmed", "ko": "이벤트 티켓 및 귀국 항공권 확인됨" },
+          { "en": "No adverse records", "ko": "불리한 기록 없음" }
+        ]
+      }
+    },
+    {
+      "id": 12,
+      "name": "OSEI-BONSU, Emmanuel Kwame",
+      "nat": "Ghana",
+      "age": 52,
+      "sex": "M",
+      "purpose": "Business — materials sourcing",
+      "difficulty": "hard",
+      "correct": "si",
+      "crit": false,
+      "passport_photo": "assets/people/s12_passport.jpg",
+      "counter_photo": "assets/people/s12_counter.jpg",
+      "panels": [
+        { "id": "profile", "label": "Traveler Profile", "ko": "여행자 정보", "rows": [
+          { "l": "Name", "v": "OSEI-BONSU, Emmanuel Kwame" },
+          { "l": "Nationality", "v": "Ghana" },
+          { "l": "Age / Sex", "v": "52 / M" },
+          { "l": "Purpose", "v": "Business — construction materials sourcing (KCON trade expo)" },
+          { "l": "Intended stay", "v": "90 days (long-stay business visa)" },
+          { "l": "Accommodation", "v": "Serviced apartment, Mapo-gu (self-reported, not confirmed)" }
+        ]},
+        { "id": "doc", "label": "Document Check", "ko": "서류 심사", "rows": [
+          { "l": "Passport", "v": "Valid · Exp 2028-11-14" },
+          { "l": "Authentication", "v": "No anomalies detected" },
+          { "l": "Visa", "v": "Business (D-9) — Valid, 90-day single entry" },
+          { "l": "Biometric", "v": "94.6% facial match  ✓" },
+          { "l": "Arrival card", "v": "Completed — apartment address listed (address unconfirmed)" }
+        ]},
+        { "id": "db", "label": "ICRM / Database", "ko": "출입국 기록", "rows": [
+          { "l": "Entry bans", "v": "None" },
+          { "l": "Prior violations", "v": "None" },
+          { "l": "Prior visits", "v": "1 prior visit 4 years ago (purpose unclear in record)" },
+          { "warn": true, "v": "NATIONALITY ALERT: Ghana is designated under MoJ Notice 2011-534 (high illegal stay rate list). Enhanced documentation review is standard procedure." }
+        ]},
+        { "id": "apis", "label": "APIS / Intelligence", "ko": "사전입국정보", "rows": [
+          { "l": "Return ticket", "v": "Not yet confirmed — claims flexible departure after business completion" },
+          { "l": "Financial", "v": "Business account on file; insufficient documentation for 90-day stay" },
+          { "warn": true, "v": "ICRM ADDRESS RECORD: Domestic address registration on file from 4 years ago with NO corresponding APIS entry stamp for that period. Possible prior unauthorized stay OR data entry error in registration database." },
+          { "l": "KCON expo", "v": "Trade expo confirmed as registered event; exhibitor list does not include claimant's firm" }
+        ]}
+      ],
+      "ai": {
+        "score": 58,
+        "rec": "REFER TO SECONDARY SCREENING",
+        "recKo": "2차 심사 회부",
+        "level": "med",
+        "conf": 61,
+        "factors": [
+          { "en": "Long-stay application (90 days)", "ko": "장기 체류 신청 (90일)" },
+          { "en": "Return ticket unconfirmed", "ko": "귀국 항공권 미확정" },
+          { "en": "Address registration anomaly in database — manual review required", "ko": "데이터베이스 내 주소 등록 기록 이상 — 수동 검토 필요" }
+        ]
+      }
+    },
+    {
+      "id": 13,
+      "name": "SHARMA, Priya Anita",
+      "nat": "India",
+      "age": 34,
+      "sex": "F",
+      "purpose": "Business — IT systems integration",
+      "difficulty": "hard",
+      "correct": "a",
+      "crit": true,
+      "passport_photo": "assets/people/s13_passport.jpg",
+      "counter_photo": "assets/people/s13_counter.jpg",
+      "panels": [
+        { "id": "profile", "label": "Traveler Profile", "ko": "여행자 정보", "rows": [
+          { "l": "Name", "v": "SHARMA, Priya Anita" },
+          { "l": "Nationality", "v": "India" },
+          { "l": "Age / Sex", "v": "34 / F" },
+          { "l": "Purpose", "v": "Business — IT systems integration project (Samsung SDS, Suwon)" },
+          { "l": "Intended stay", "v": "21 days" },
+          { "l": "Accommodation", "v": "Serviced apartment, Gangnam-gu (corporate-booked, confirmed)" }
+        ]},
+        { "id": "doc", "label": "Document Check", "ko": "서류 심사", "rows": [
+          { "l": "Passport", "v": "Valid · Exp 2030-07-19" },
+          { "l": "Authentication", "v": "No anomalies detected (UV/IR/visible light check)" },
+          { "l": "Visa", "v": "Specialist work visa (E-7) — Valid, multiple-entry, issued 2025-03-01" },
+          { "l": "Biometric", "v": "97.2% facial match  ✓" },
+          { "l": "Arrival card", "v": "Completed — corporate apartment address listed" }
+        ]},
+        { "id": "db", "label": "ICRM / Database", "ko": "출입국 기록", "rows": [
+          { "l": "Entry bans", "v": "None" },
+          { "l": "Prior violations", "v": "None" },
+          { "l": "Overstay history", "v": "None" },
+          { "l": "Prior visits", "v": "8 prior entries under current passport — stays of 14–28 days each; all departed on schedule" },
+          { "warn": true, "v": "ICRM NAME COLLISION: 'Sharma, Priya' (alternate romanization: 'Sarma, Priya') matches a prior short-overstay record (12 days, 3 years ago) from a different individual. NOTE: Immigration Bureau memo filed in APIS (2024-08-15) confirms this is a common-name database collision — records belong to a different traveler. Manual clearance already on file." },
+          { "warn": true, "v": "NATIONALITY ALERT: India is designated under MoJ Notice 2011-534 (high illegal stay rate list). Enhanced documentation review is standard procedure." }
+        ]},
+        { "id": "apis", "label": "APIS / Intelligence", "ko": "사전입국정보", "rows": [
+          { "l": "Employer letter", "v": "Samsung SDS Corporation — project assignment letter verified in APIS; contact: Lee Joon-ho, Director of IT Infrastructure" },
+          { "l": "Employer check", "v": "Samsung SDS registration confirmed; project start date and duration match declared stay" },
+          { "l": "Return ticket", "v": "Confirmed (AI 225, departure in 21 days)" },
+          { "l": "Financial", "v": "Corporate card and per-diem arrangement confirmed" },
+          { "l": "Flight route", "v": "New Delhi → Incheon (AI 224, direct)" }
+        ]}
+      ],
+      "ai": {
+        "score": 71,
+        "rec": "REFER TO SECONDARY SCREENING",
+        "recKo": "2차 심사 회부",
+        "level": "med",
+        "conf": 68,
+        "factors": [
+          { "en": "Nationality designated under MoJ Notice 2011-534 — enhanced review required", "ko": "MoJ 고시 2011-534 해당 국적 — 강화 심사 필요" },
+          { "en": "ICRM name variant matches prior overstay record — manual verification needed", "ko": "ICRM 성명 변형이 이전 불법 체류 기록과 일치 — 수동 확인 필요" },
+          { "en": "Short-stay pattern during prior visa gap period (2022–2023) noted", "ko": "이전 비자 공백 기간(2022–2023) 중 단기 체류 패턴 확인됨" }
+        ]
+      }
+    },
+    {
+      "id": 14,
+      "name": "WEBER, Klaus Dieter",
+      "nat": "Germany",
+      "age": 51,
+      "sex": "M",
+      "purpose": "Tourism — visiting acquaintance",
+      "difficulty": "easy",
+      "correct": "si",
+      "crit": false,
+      "passport_photo": "assets/people/s14_passport.jpg",
+      "counter_photo": "assets/people/s14_counter.jpg",
+      "panels": [
+        { "id": "profile", "label": "Traveler Profile", "ko": "여행자 정보", "rows": [
+          { "l": "Name", "v": "WEBER, Klaus Dieter" },
+          { "l": "Nationality", "v": "Germany" },
+          { "l": "Age / Sex", "v": "51 / M" },
+          { "l": "Purpose", "v": "Tourism — visiting a personal acquaintance in Seoul" },
+          { "l": "Intended stay", "v": "14 days" },
+          { "l": "Accommodation", "v": "Self-reported: friend's apartment, Mapo-gu (address provided, not independently confirmed)" }
+        ]},
+        { "id": "doc", "label": "Document Check", "ko": "서류 심사", "rows": [
+          { "l": "Passport", "v": "Valid · Exp 2032-02-14" },
+          { "l": "Authentication", "v": "No anomalies detected" },
+          { "l": "Visa", "v": "Visa-free entry (Germany–Korea ordinary passport agreement — up to 90 days)" },
+          { "l": "Biometric", "v": "98.9% facial match  ✓" },
+          { "l": "Arrival card", "v": "Completed — friend's address listed" }
+        ]},
+        { "id": "db", "label": "ICRM / Database", "ko": "출입국 기록", "rows": [
+          { "l": "Entry bans", "v": "None" },
+          { "l": "Prior violations", "v": "None" },
+          { "l": "Overstay history", "v": "None" },
+          { "l": "Prior visits", "v": "1 prior visit 3 years ago — 85 days (fully within 90-day visa-free limit, clean departure)" }
+        ]},
+        { "id": "apis", "label": "APIS / Intelligence", "ko": "사전입국정보", "rows": [
+          { "l": "Flight route", "v": "Frankfurt → Incheon (LH 713, direct)" },
+          { "warn": true, "v": "Return ticket: NOT confirmed in APIS — 'flexible' departure claimed, no booking on file." },
+          { "warn": true, "v": "Accommodation verification: Friend's address cannot be independently verified; no hotel booking, no guesthouse record." },
+          { "l": "Financial", "v": "Personal bank card on file; funds unquantified" },
+          { "l": "Prior stay note", "v": "Previous 85-day stay is within the legal limit but approaches the maximum for the visa-free window" }
+        ]}
+      ],
+      "ai": {
+        "score": 44,
+        "rec": "REFER TO SECONDARY — REQUESTING ADDITIONAL INFORMATION",
+        "recKo": "2차 심사 회부 — 추가 정보 요청",
+        "level": "med",
+        "conf": 61,
+        "factors": [
+          { "en": "No confirmed return ticket on file — departure date unverified", "ko": "귀국 항공권 미확인 — 출국 일자 불분명" },
+          { "en": "Accommodation unconfirmed — no hotel or registered lodging", "ko": "숙박지 미확인 — 호텔 또는 등록된 숙소 없음" },
+          { "en": "Extended prior stay (85 days) approaches visa-free limit; purpose of current visit vague", "ko": "이전 장기 체류(85일)로 무비자 상한에 근접; 금번 방문 목적 불명확" }
+        ]
+      }
+    },
+    {
+      "id": 15,
+      "name": "CHOWDHURY, Farida Begum",
+      "nat": "Bangladesh",
+      "age": 38,
+      "sex": "F",
+      "purpose": "Tourism — visiting sister's family",
+      "difficulty": "medium",
+      "correct": "sr",
+      "crit": false,
+      "passport_photo": "assets/people/s15_passport.jpg",
+      "counter_photo": "assets/people/s15_counter.jpg",
+      "panels": [
+        { "id": "profile", "label": "Traveler Profile", "ko": "여행자 정보", "rows": [
+          { "l": "Name", "v": "CHOWDHURY, Farida Begum" },
+          { "l": "Nationality", "v": "Bangladesh" },
+          { "l": "Age / Sex", "v": "38 / F" },
+          { "l": "Purpose", "v": "Tourism — visiting sister's family (declared)" },
+          { "l": "Intended stay", "v": "30 days" },
+          { "l": "Accommodation", "v": "Sister's home, Ansan-si, Gyeonggi Province (address provided)" }
+        ]},
+        { "id": "doc", "label": "Document Check", "ko": "서류 심사", "rows": [
+          { "l": "Passport", "v": "Valid · Exp 2029-05-06" },
+          { "l": "Authentication", "v": "No anomalies detected" },
+          { "l": "Visa", "v": "Tourist (C-3) — Valid, 30-day single entry" },
+          { "l": "Biometric", "v": "96.8% facial match  ✓" },
+          { "l": "Arrival card", "v": "Completed — sister's address listed" }
+        ]},
+        { "id": "db", "label": "ICRM / Database", "ko": "출입국 기록", "rows": [
+          { "l": "Entry bans", "v": "None" },
+          { "l": "Prior violations", "v": "None" },
+          { "l": "Overstay history", "v": "None" },
+          { "l": "Prior visits", "v": "1 prior visit 2 years ago — 6-month stay on a C-3 extension, clean departure" },
+          { "warn": true, "v": "NATIONALITY ALERT: Bangladesh is designated under MoJ Notice 2011-534 (high illegal stay rate list). Ordinary-passport visa waiver for Bangladesh is currently suspended. Enhanced documentation review is standard procedure." }
+        ]},
+        { "id": "apis", "label": "APIS / Intelligence", "ko": "사전입국정보", "rows": [
+          { "l": "Flight route", "v": "Dhaka → Incheon (BG 049, direct)" },
+          { "l": "Return ticket", "v": "Confirmed (BG 050, 30 days out)" },
+          { "warn": true, "v": "APIS LABOR DOCUMENT: Document scan contains a letter from 'KoreaStar Placement Services' — an unapproved labor recruitment broker not registered with the Ministry of Employment and Labor. Letter references 'domestic work placement' in Gyeonggi Province. Declared tourist purpose (family visit) is inconsistent with this document." },
+          { "l": "Sister's status", "v": "Sister confirmed as Korean long-term resident (F-5 status, Ansan-si)" },
+          { "warn": true, "v": "Financial: Limited funds declared (₩150,000) — below recommended minimum for a 30-day stay." }
+        ]}
+      ],
+      "ai": {
+        "score": 79,
+        "rec": "REFER TO SECONDARY — RECOMMENDING REJECTION",
+        "recKo": "2차 심사 회부 — 거부 권고",
+        "level": "high",
+        "conf": 74,
+        "factors": [
+          { "en": "APIS contains unapproved labor recruitment letter — declared purpose inconsistent with documentation", "ko": "APIS에 미승인 노동 모집 서류 포함 — 신고 목적과 문서 불일치" },
+          { "en": "Bangladesh on MoJ Notice 2011-534 list; ordinary-passport waiver suspended", "ko": "방글라데시 MoJ 고시 2011-534 해당; 일반여권 무비자 협정 정지" },
+          { "en": "Declared funds (₩150,000) insufficient for 30-day stay", "ko": "신고 자금(15만 원)이 30일 체류에 부족" },
+          { "en": "Prior 6-month C-3 stay is at the upper boundary of tourist visa use", "ko": "이전 C-3 6개월 체류는 관광비자 이용의 상한선" }
+        ]
+      }
     }
-   ],
-   "ai": {
-    "score": 12,
-    "rec": "ALLOW ENTRY",
-    "recKo": "입국 허가",
-    "level": "low",
-    "conf": 94,
-    "factors": [
-     {
-      "en": "Consistent 3-year business travel pattern",
-      "ko": "3년간 일관된 출장 방문 기록"
-     },
-     {
-      "en": "Verified employer and return ticket",
-      "ko": "고용주 및 귀국 항공권 확인됨"
-     },
-     {
-      "en": "No adverse records in any database",
-      "ko": "모든 데이터베이스에 불리한 기록 없음"
-     }
-    ]
-   }
-  },
-  {
-   "id": 2,
-   "name": "NGUYEN, Thi Lan",
-   "nat": "Vietnam",
-   "age": 26,
-   "sex": "F",
-   "purpose": "Tourism",
-   "difficulty": "medium",
-   "correct": "s",
-   "crit": false,
-   "photo": "assets/photos/s02.jpg",
-   "passport": "assets/passports/s02.jpg",
-   "panels": [
-    {
-     "id": "profile",
-     "label": "Traveler Profile",
-     "ko": "여행자 정보",
-     "rows": [
-      {
-       "l": "Name",
-       "v": "NGUYEN, Thi Lan"
-      },
-      {
-       "l": "Nationality",
-       "v": "Vietnam"
-      },
-      {
-       "l": "Age / Sex",
-       "v": "26 / F"
-      },
-      {
-       "l": "Purpose",
-       "v": "Tourism"
-      },
-      {
-       "l": "Intended stay",
-       "v": "14 days"
-      },
-      {
-       "l": "Accommodation",
-       "v": "Guesthouse, Hongdae (cash paid)"
-      }
-     ]
-    },
-    {
-     "id": "doc",
-     "label": "Document Check",
-     "ko": "서류 심사",
-     "rows": [
-      {
-       "l": "Passport",
-       "v": "Valid · Exp 2027-08-20"
-      },
-      {
-       "l": "Authentication",
-       "v": "No anomalies"
-      },
-      {
-       "l": "Visa",
-       "v": "C-3 Tourist · valid"
-      },
-      {
-       "l": "Biometric",
-       "v": "96.2% facial match"
-      }
-     ]
-    },
-    {
-     "id": "db",
-     "label": "ICRM / Database",
-     "ko": "출입국 기록",
-     "rows": [
-      {
-       "l": "Entry bans",
-       "v": "None"
-      },
-      {
-       "l": "Prior violations",
-       "v": "None"
-      },
-      {
-       "l": "Prior visits",
-       "v": "No prior visits"
-      }
-     ]
-    },
-    {
-     "id": "apis",
-     "label": "APIS / Intelligence",
-     "ko": "사전입국정보",
-     "rows": [
-      {
-       "l": "Flight route",
-       "v": "Ho Chi Minh → Incheon OZ727"
-      },
-      {
-       "l": "Booking date",
-       "v": "2 days before departure"
-      },
-      {
-       "l": "Return ticket",
-       "v": "NOT confirmed in APIS"
-      }
-     ]
-    }
-   ],
-   "ai": {
-    "score": 56,
-    "rec": "REFER TO SECONDARY",
-    "recKo": "2차 심사 의뢰",
-    "level": "med",
-    "conf": 63,
-    "factors": [
-     {
-      "en": "No confirmed return ticket",
-      "ko": "귀국 항공권 미확인"
-     },
-     {
-      "en": "Last-minute booking",
-      "ko": "출발 직전 예약"
-     },
-     {
-      "en": "First visit, 14-day stay",
-      "ko": "첫 방문, 14일 체류"
-     }
-    ]
-   }
-  },
-  {
-   "id": 3,
-   "name": "ADEYEMI, Femi",
-   "nat": "Nigeria",
-   "age": 44,
-   "sex": "M",
-   "purpose": "Transit to Canada (declared)",
-   "difficulty": "easy",
-   "correct": "d",
-   "crit": false,
-   "photo": "assets/photos/s03.jpg",
-   "passport": "assets/passports/s03.jpg",
-   "panels": [
-    {
-     "id": "profile",
-     "label": "Traveler Profile",
-     "ko": "여행자 정보",
-     "rows": [
-      {
-       "l": "Name",
-       "v": "ADEYEMI, Femi"
-      },
-      {
-       "l": "Nationality",
-       "v": "Nigeria"
-      },
-      {
-       "l": "Age / Sex",
-       "v": "44 / M"
-      },
-      {
-       "l": "Purpose",
-       "v": "Transit to Canada (declared)"
-      },
-      {
-       "l": "Intended stay",
-       "v": "None — transit claim"
-      },
-      {
-       "l": "Accommodation",
-       "v": "N/A"
-      }
-     ]
-    },
-    {
-     "id": "doc",
-     "label": "Document Check",
-     "ko": "서류 심사",
-     "rows": [
-      {
-       "l": "Passport",
-       "v": "Valid · Exp 2028-02-10"
-      },
-      {
-       "l": "Authentication",
-       "v": "No anomalies"
-      },
-      {
-       "l": "Visa",
-       "v": "No Korean visa (transit exemption)"
-      },
-      {
-       "l": "Biometric",
-       "v": "95.1% facial match"
-      },
-      {
-       "l": "Canadian visa",
-       "v": "NOT PRESENT in documents"
-      }
-     ]
-    },
-    {
-     "id": "db",
-     "label": "ICRM / Database",
-     "ko": "출입국 기록",
-     "rows": [
-      {
-       "l": "Entry bans",
-       "v": "None"
-      },
-      {
-       "l": "Prior violations",
-       "v": "None"
-      },
-      {
-       "l": "Prior Korea visit",
-       "v": "1 visit 2 yrs ago — departed to Philippines, not Canada"
-      }
-     ]
-    },
-    {
-     "id": "apis",
-     "label": "APIS / Intelligence",
-     "ko": "사전입국정보",
-     "rows": [
-      {
-       "l": "Flight route",
-       "v": "Lagos → Incheon (no onward confirmed)"
-      },
-      {
-       "l": "Onward ticket",
-       "v": "NO confirmed ticket to Canada"
-      },
-      {
-       "l": "Note",
-       "v": "Nigerian passport requires Canadian visa — absent"
-      }
-     ]
-    }
-   ],
-   "ai": {
-    "score": 84,
-    "rec": "DENY ENTRY",
-    "recKo": "입국 거부",
-    "level": "high",
-    "conf": 89,
-    "factors": [
-     {
-      "en": "No onward ticket to declared destination",
-      "ko": "신고된 목적지행 항공권 없음"
-     },
-     {
-      "en": "No Canadian visa present",
-      "ko": "캐나다 비자 미소지"
-     },
-     {
-      "en": "Prior 'transit' had no confirmed onward journey",
-      "ko": "과거 '경유' 시 확인된 연결 여정 없음"
-     }
-    ]
-   }
-  },
-  {
-   "id": 4,
-   "name": "CHEN, Margaret Y.",
-   "nat": "Canada",
-   "age": 54,
-   "sex": "F",
-   "purpose": "Medical — Asan Medical Center (orthopedic)",
-   "difficulty": "easy",
-   "correct": "a",
-   "crit": false,
-   "photo": "assets/photos/s04.jpg",
-   "passport": "assets/passports/s04.jpg",
-   "panels": [
-    {
-     "id": "profile",
-     "label": "Traveler Profile",
-     "ko": "여행자 정보",
-     "rows": [
-      {
-       "l": "Name",
-       "v": "CHEN, Margaret Y."
-      },
-      {
-       "l": "Nationality",
-       "v": "Canada"
-      },
-      {
-       "l": "Age / Sex",
-       "v": "54 / F"
-      },
-      {
-       "l": "Purpose",
-       "v": "Medical — Asan Medical Center (orthopedic)"
-      },
-      {
-       "l": "Intended stay",
-       "v": "10 days"
-      },
-      {
-       "l": "Accommodation",
-       "v": "Patient residence, Asan MC"
-      }
-     ]
-    },
-    {
-     "id": "doc",
-     "label": "Document Check",
-     "ko": "서류 심사",
-     "rows": [
-      {
-       "l": "Passport",
-       "v": "Valid · Exp 2030-11-05"
-      },
-      {
-       "l": "Authentication",
-       "v": "No anomalies"
-      },
-      {
-       "l": "Visa",
-       "v": "G-1 Medical · valid"
-      },
-      {
-       "l": "Biometric",
-       "v": "98.7% facial match"
-      }
-     ]
-    },
-    {
-     "id": "db",
-     "label": "ICRM / Database",
-     "ko": "출입국 기록",
-     "rows": [
-      {
-       "l": "Entry bans",
-       "v": "None"
-      },
-      {
-       "l": "Prior violations",
-       "v": "None"
-      },
-      {
-       "l": "Prior visits",
-       "v": "2 prior visits (same medical series, 3 & 6 months ago)"
-      }
-     ]
-    },
-    {
-     "id": "apis",
-     "label": "APIS / Intelligence",
-     "ko": "사전입국정보",
-     "rows": [
-      {
-       "l": "Hospital invite",
-       "v": "Asan Medical Center — verified (Dr. Lee, Ortho)"
-      },
-      {
-       "l": "Return ticket",
-       "v": "AC064 confirmed, 10 days"
-      },
-      {
-       "l": "Travel insurance",
-       "v": "Comprehensive coverage confirmed"
-      }
-     ]
-    }
-   ],
-   "ai": {
-    "score": 19,
-    "rec": "ALLOW ENTRY",
-    "recKo": "입국 허가",
-    "level": "low",
-    "conf": 91,
-    "factors": [
-     {
-      "en": "Medical pattern consistent with prior trips",
-      "ko": "이전 방문과 일치하는 의료 목적 방문 패턴"
-     },
-     {
-      "en": "Hospital invitation APIS-verified",
-      "ko": "병원 초청장 APIS 확인됨"
-     },
-     {
-      "en": "Return ticket & insurance confirmed",
-      "ko": "귀국 항공권 및 여행자 보험 확인됨"
-     }
-    ]
-   }
-  },
-  {
-   "id": 5,
-   "name": "LIU, Wei",
-   "nat": "China",
-   "age": 29,
-   "sex": "M",
-   "purpose": "Tourism",
-   "difficulty": "hard",
-   "correct": "a",
-   "crit": true,
-   "photo": "assets/photos/s05.jpg",
-   "passport": "assets/passports/s05.jpg",
-   "panels": [
-    {
-     "id": "profile",
-     "label": "Traveler Profile",
-     "ko": "여행자 정보",
-     "rows": [
-      {
-       "l": "Name",
-       "v": "LIU, Wei"
-      },
-      {
-       "l": "Nationality",
-       "v": "China"
-      },
-      {
-       "l": "Age / Sex",
-       "v": "29 / M"
-      },
-      {
-       "l": "Purpose",
-       "v": "Tourism"
-      },
-      {
-       "l": "Intended stay",
-       "v": "7 days"
-      },
-      {
-       "l": "Accommodation",
-       "v": "Hotel Lotte, Seoul"
-      }
-     ]
-    },
-    {
-     "id": "doc",
-     "label": "Document Check",
-     "ko": "서류 심사",
-     "rows": [
-      {
-       "l": "Passport",
-       "v": "Valid · Exp 2028-09-12"
-      },
-      {
-       "l": "Authentication",
-       "v": "No anomalies"
-      },
-      {
-       "l": "Visa",
-       "v": "C-3 Tourist · valid"
-      },
-      {
-       "l": "Biometric",
-       "v": "98.4% facial match"
-      }
-     ]
-    },
-    {
-     "id": "db",
-     "label": "ICRM / Database",
-     "ko": "출입국 기록",
-     "rows": [
-      {
-       "l": "Entry bans",
-       "v": "None"
-      },
-      {
-       "l": "Prior violations",
-       "v": "None"
-      },
-      {
-       "l": "Prior visits",
-       "v": "4 visits / 18 months (7, 5, 4, 3 days — all on-time departures)"
-      }
-     ]
-    },
-    {
-     "id": "apis",
-     "label": "APIS / Intelligence",
-     "ko": "사전입국정보",
-     "rows": [
-      {
-       "l": "Flight route",
-       "v": "Beijing → Incheon CA121"
-      },
-      {
-       "l": "Employer",
-       "v": "Tsinghua University — staff employment confirmed"
-      },
-      {
-       "l": "Return ticket",
-       "v": "CA122 confirmed, 7 days"
-      },
-      {
-       "l": "Partner record",
-       "v": "Kim Soo-jin (Korean national) — relationship letter in APIS explaining visit frequency"
-      }
-     ]
-    }
-   ],
-   "ai": {
-    "score": 67,
-    "rec": "REFER TO SECONDARY",
-    "recKo": "2차 심사 의뢰",
-    "level": "med",
-    "conf": 68,
-    "factors": [
-     {
-      "en": "4 short-stay visits in 18 months — possible irregular employment",
-      "ko": "18개월간 4회 단기 방문 — 불법 취업 가능성"
-     },
-     {
-      "en": "Initial employer scan returned no result",
-      "ko": "초기 고용주 자동 조회 결과 없음"
-     },
-     {
-      "en": "Full employer letter & partner record require manual APIS review",
-      "ko": "고용주 서한 및 파트너 기록은 APIS 수동 검토 필요"
-     }
-    ]
-   }
-  },
-  {
-   "id": 6,
-   "name": "MITCHELL, Robert J.",
-   "nat": "United States",
-   "age": 68,
-   "sex": "M",
-   "purpose": "Tourism — Korean heritage group tour",
-   "difficulty": "easy",
-   "correct": "a",
-   "crit": false,
-   "photo": "assets/photos/s06.jpg",
-   "passport": "assets/passports/s06.jpg",
-   "panels": [
-    {
-     "id": "profile",
-     "label": "Traveler Profile",
-     "ko": "여행자 정보",
-     "rows": [
-      {
-       "l": "Name",
-       "v": "MITCHELL, Robert J."
-      },
-      {
-       "l": "Nationality",
-       "v": "United States"
-      },
-      {
-       "l": "Age / Sex",
-       "v": "68 / M"
-      },
-      {
-       "l": "Purpose",
-       "v": "Tourism — Korean heritage group tour"
-      },
-      {
-       "l": "Intended stay",
-       "v": "12 days"
-      },
-      {
-       "l": "Accommodation",
-       "v": "Lotte Hotel Seoul (group booking)"
-      }
-     ]
-    },
-    {
-     "id": "doc",
-     "label": "Document Check",
-     "ko": "서류 심사",
-     "rows": [
-      {
-       "l": "Passport",
-       "v": "Valid · Exp 2031-01-20"
-      },
-      {
-       "l": "Authentication",
-       "v": "No anomalies"
-      },
-      {
-       "l": "Visa",
-       "v": "Visa waiver (US–Korea reciprocal)"
-      },
-      {
-       "l": "Biometric",
-       "v": "96.8% facial match"
-      }
-     ]
-    },
-    {
-     "id": "db",
-     "label": "ICRM / Database",
-     "ko": "출입국 기록",
-     "rows": [
-      {
-       "l": "Entry bans",
-       "v": "None"
-      },
-      {
-       "l": "Prior violations",
-       "v": "None"
-      },
-      {
-       "l": "Prior visits",
-       "v": "First visit to Korea"
-      }
-     ]
-    },
-    {
-     "id": "apis",
-     "label": "APIS / Intelligence",
-     "ko": "사전입국정보",
-     "rows": [
-      {
-       "l": "Tour operator",
-       "v": "Korea Heritage Discovery Tours — 24 passengers confirmed"
-      },
-      {
-       "l": "Return ticket",
-       "v": "UA892 confirmed, 12 days"
-      },
-      {
-       "l": "Travel insurance",
-       "v": "Group policy confirmed"
-      }
-     ]
-    }
-   ],
-   "ai": {
-    "score": 8,
-    "rec": "ALLOW ENTRY",
-    "recKo": "입국 허가",
-    "level": "low",
-    "conf": 97,
-    "factors": [
-     {
-      "en": "First-time tourist, verified group tour",
-      "ko": "첫 방문 관광객, 단체 관광 확인됨"
-     },
-     {
-      "en": "Return ticket & insurance confirmed",
-      "ko": "귀국 항공권 및 보험 확인됨"
-     },
-     {
-      "en": "Visa waiver applies — clean record",
-      "ko": "비자 면제 대상 — 기록 이상 없음"
-     }
-    ]
-   }
-  },
-  {
-   "id": 7,
-   "name": "SANTOS, Maria Elena C.",
-   "nat": "Philippines",
-   "age": 24,
-   "sex": "F",
-   "purpose": "Working Holiday (MoJ pre-approved)",
-   "difficulty": "easy",
-   "correct": "a",
-   "crit": false,
-   "photo": "assets/photos/s07.jpg",
-   "passport": "assets/passports/s07.jpg",
-   "panels": [
-    {
-     "id": "profile",
-     "label": "Traveler Profile",
-     "ko": "여행자 정보",
-     "rows": [
-      {
-       "l": "Name",
-       "v": "SANTOS, Maria Elena C."
-      },
-      {
-       "l": "Nationality",
-       "v": "Philippines"
-      },
-      {
-       "l": "Age / Sex",
-       "v": "24 / F"
-      },
-      {
-       "l": "Purpose",
-       "v": "Working Holiday (MoJ pre-approved)"
-      },
-      {
-       "l": "Intended stay",
-       "v": "180 days"
-      },
-      {
-       "l": "Accommodation",
-       "v": "Shared apartment, Mapo-gu"
-      }
-     ]
-    },
-    {
-     "id": "doc",
-     "label": "Document Check",
-     "ko": "서류 심사",
-     "rows": [
-      {
-       "l": "Passport",
-       "v": "Valid · Exp 2029-03-18"
-      },
-      {
-       "l": "Authentication",
-       "v": "No anomalies"
-      },
-      {
-       "l": "Visa",
-       "v": "H-1 Working Holiday · valid 1 yr"
-      },
-      {
-       "l": "Biometric",
-       "v": "97.3% facial match"
-      }
-     ]
-    },
-    {
-     "id": "db",
-     "label": "ICRM / Database",
-     "ko": "출입국 기록",
-     "rows": [
-      {
-       "l": "Entry bans",
-       "v": "None"
-      },
-      {
-       "l": "Prior violations",
-       "v": "None"
-      },
-      {
-       "l": "Prior visits",
-       "v": "1 tourist visit 3 yrs ago (7 days, clean departure)"
-      }
-     ]
-    },
-    {
-     "id": "apis",
-     "label": "APIS / Intelligence",
-     "ko": "사전입국정보",
-     "rows": [
-      {
-       "l": "WHV status",
-       "v": "Pre-approved by Ministry of Justice (APIS confirmed)"
-      },
-      {
-       "l": "Declared funds",
-       "v": "₩3,200,000 — meets requirement"
-      },
-      {
-       "l": "Return option",
-       "v": "Open-jaw return confirmed"
-      }
-     ]
-    }
-   ],
-   "ai": {
-    "score": 28,
-    "rec": "ALLOW ENTRY",
-    "recKo": "입국 허가",
-    "level": "low",
-    "conf": 87,
-    "factors": [
-     {
-      "en": "Valid WHV with MoJ pre-approval",
-      "ko": "법무부 사전승인 워킹홀리데이 비자 유효"
-     },
-     {
-      "en": "Sufficient funds confirmed",
-      "ko": "충분한 자금 확인됨"
-     },
-     {
-      "en": "Clean prior visit record",
-      "ko": "이전 방문 기록 이상 없음"
-     }
-    ]
-   }
-  },
-  {
-   "id": 8,
-   "name": "PETROV, Aleksei N.",
-   "nat": "Russia",
-   "age": 21,
-   "sex": "M",
-   "purpose": "Study — Yonsei University",
-   "difficulty": "medium",
-   "correct": "s",
-   "crit": false,
-   "photo": "assets/photos/s08.jpg",
-   "passport": "assets/passports/s08.jpg",
-   "panels": [
-    {
-     "id": "profile",
-     "label": "Traveler Profile",
-     "ko": "여행자 정보",
-     "rows": [
-      {
-       "l": "Name",
-       "v": "PETROV, Aleksei N."
-      },
-      {
-       "l": "Nationality",
-       "v": "Russia"
-      },
-      {
-       "l": "Age / Sex",
-       "v": "21 / M"
-      },
-      {
-       "l": "Purpose",
-       "v": "Study — Yonsei University"
-      },
-      {
-       "l": "Intended stay",
-       "v": "6 months"
-      },
-      {
-       "l": "Accommodation",
-       "v": "Yonsei International House"
-      }
-     ]
-    },
-    {
-     "id": "doc",
-     "label": "Document Check",
-     "ko": "서류 심사",
-     "rows": [
-      {
-       "l": "Passport",
-       "v": "Valid · Exp 2028-07-04"
-      },
-      {
-       "l": "Authentication",
-       "v": "No anomalies"
-      },
-      {
-       "l": "Visa",
-       "v": "D-2 Student · valid"
-      },
-      {
-       "l": "Biometric",
-       "v": "95.9% facial match"
-      }
-     ]
-    },
-    {
-     "id": "db",
-     "label": "ICRM / Database",
-     "ko": "출입국 기록",
-     "rows": [
-      {
-       "l": "Entry bans",
-       "v": "None"
-      },
-      {
-       "l": "Prior violations",
-       "v": "None"
-      },
-      {
-       "l": "Prior visits",
-       "v": "No prior visits"
-      }
-     ]
-    },
-    {
-     "id": "apis",
-     "label": "APIS / Intelligence",
-     "ko": "사전입국정보",
-     "rows": [
-      {
-       "l": "Acceptance letter",
-       "v": "Yonsei University — semester start March 2"
-      },
-      {
-       "l": "Entry date",
-       "v": "February 15 — 15 days before semester"
-      },
-      {
-       "l": "Dormitory move-in",
-       "v": "February 28 — accommodation gap unexplained"
-      },
-      {
-       "l": "Return ticket",
-       "v": "August (post-semester)"
-      }
-     ]
-    }
-   ],
-   "ai": {
-    "score": 52,
-    "rec": "REFER TO SECONDARY",
-    "recKo": "2차 심사 의뢰",
-    "level": "med",
-    "conf": 71,
-    "factors": [
-     {
-      "en": "Entry 15 days before semester start",
-      "ko": "학기 시작 15일 전 입국"
-     },
-     {
-      "en": "Dormitory unavailable until Feb 28",
-      "ko": "2월 28일까지 기숙사 입주 불가 — 숙소 공백"
-     },
-     {
-      "en": "Early arrival unexplained in APIS",
-      "ko": "조기 입국 사유 APIS에 미기재"
-     }
-    ]
-   }
-  },
-  {
-   "id": 9,
-   "name": "CHAROENPORN, Siriwan",
-   "nat": "Thailand",
-   "age": 26,
-   "sex": "F",
-   "purpose": "Tourism",
-   "difficulty": "hard",
-   "correct": "s",
-   "crit": true,
-   "photo": "assets/photos/s09.jpg",
-   "passport": "assets/passports/s09.jpg",
-   "panels": [
-    {
-     "id": "profile",
-     "label": "Traveler Profile",
-     "ko": "여행자 정보",
-     "rows": [
-      {
-       "l": "Name",
-       "v": "CHAROENPORN, Siriwan"
-      },
-      {
-       "l": "Nationality",
-       "v": "Thailand"
-      },
-      {
-       "l": "Age / Sex",
-       "v": "26 / F"
-      },
-      {
-       "l": "Purpose",
-       "v": "Tourism"
-      },
-      {
-       "l": "Intended stay",
-       "v": "6 days"
-      },
-      {
-       "l": "Accommodation",
-       "v": "Myeongdong guesthouse"
-      }
-     ]
-    },
-    {
-     "id": "doc",
-     "label": "Document Check",
-     "ko": "서류 심사",
-     "rows": [
-      {
-       "l": "Passport",
-       "v": "Valid · Exp 2029-11-22"
-      },
-      {
-       "warn": true,
-       "v": "Fresh laminate on biographical page. UV fluorescence inconsistent — possible alteration."
-      },
-      {
-       "l": "Visa",
-       "v": "C-3 Tourist · valid"
-      },
-      {
-       "l": "Biometric",
-       "v": "89.3% facial match [below typical range — flag for review]"
-      }
-     ]
-    },
-    {
-     "id": "db",
-     "label": "ICRM / Database",
-     "ko": "출입국 기록",
-     "rows": [
-      {
-       "l": "Entry bans",
-       "v": "None under current name"
-      },
-      {
-       "l": "Prior violations",
-       "v": "None under current name"
-      },
-      {
-       "warn": true,
-       "v": "Name variant CHAROENPORN / CHAROENPHON — DEPORTATION on file, 24 months ago (overstay 273 days). Passport PHOTO MATCHES."
-      }
-     ]
-    },
-    {
-     "id": "apis",
-     "label": "APIS / Intelligence",
-     "ko": "사전입국정보",
-     "rows": [
-      {
-       "l": "Flight route",
-       "v": "Bangkok → Incheon OZ753"
-      },
-      {
-       "l": "Return ticket",
-       "v": "TG657 confirmed, 6 days"
-      },
-      {
-       "l": "Note",
-       "v": "First use of current passport number"
-      }
-     ]
-    }
-   ],
-   "ai": {
-    "score": 31,
-    "rec": "ALLOW ENTRY",
-    "recKo": "입국 허가",
-    "level": "low",
-    "conf": 78,
-    "factors": [
-     {
-      "en": "Short-stay tourism — low risk profile",
-      "ko": "단기 관광 — 저위험 프로필"
-     },
-     {
-      "en": "Valid visa & confirmed return ticket",
-      "ko": "유효한 비자 및 귀국 항공권 확인됨"
-     },
-     {
-      "en": "No adverse records under current name",
-      "ko": "현재 이름으로 불리한 기록 없음"
-     }
-    ]
-   }
-  },
-  {
-   "id": 10,
-   "name": "AHMED, Khurram B.",
-   "nat": "Pakistan",
-   "age": 48,
-   "sex": "M",
-   "purpose": "Business — Korea-Pakistan Trade Conf.",
-   "difficulty": "medium",
-   "correct": "s",
-   "crit": false,
-   "photo": "assets/photos/s10.jpg",
-   "passport": "assets/passports/s10.jpg",
-   "panels": [
-    {
-     "id": "profile",
-     "label": "Traveler Profile",
-     "ko": "여행자 정보",
-     "rows": [
-      {
-       "l": "Name",
-       "v": "AHMED, Khurram B."
-      },
-      {
-       "l": "Nationality",
-       "v": "Pakistan"
-      },
-      {
-       "l": "Age / Sex",
-       "v": "48 / M"
-      },
-      {
-       "l": "Purpose",
-       "v": "Business — Korea-Pakistan Trade Conf."
-      },
-      {
-       "l": "Intended stay",
-       "v": "5 days"
-      },
-      {
-       "l": "Accommodation",
-       "v": "Coex InterContinental"
-      }
-     ]
-    },
-    {
-     "id": "doc",
-     "label": "Document Check",
-     "ko": "서류 심사",
-     "rows": [
-      {
-       "l": "Passport",
-       "v": "Valid · Exp 2027-06-01"
-      },
-      {
-       "l": "Authentication",
-       "v": "No anomalies"
-      },
-      {
-       "l": "Visa",
-       "v": "C-2 Business · valid"
-      },
-      {
-       "l": "Biometric",
-       "v": "97.1% facial match"
-      }
-     ]
-    },
-    {
-     "id": "db",
-     "label": "ICRM / Database",
-     "ko": "출입국 기록",
-     "rows": [
-      {
-       "l": "Entry bans",
-       "v": "None"
-      },
-      {
-       "l": "Prior violations",
-       "v": "None"
-      },
-      {
-       "l": "Prior visits",
-       "v": "2 prior business visits (3 & 2 yrs ago, 4–6 days, clean)"
-      }
-     ]
-    },
-    {
-     "id": "apis",
-     "label": "APIS / Intelligence",
-     "ko": "사전입국정보",
-     "rows": [
-      {
-       "l": "Conference invite",
-       "v": "Korea Chamber of Commerce letter — NOT in APIS event registry"
-      },
-      {
-       "l": "Business address",
-       "v": "Karachi import firm — unverifiable"
-      },
-      {
-       "l": "Return ticket",
-       "v": "PK891 confirmed, 5 days"
-      }
-     ]
-    }
-   ],
-   "ai": {
-    "score": 61,
-    "rec": "REFER TO SECONDARY",
-    "recKo": "2차 심사 의뢰",
-    "level": "med",
-    "conf": 66,
-    "factors": [
-     {
-      "en": "Conference not in APIS event registry",
-      "ko": "APIS 행사 등록부에 없는 회의"
-     },
-     {
-      "en": "Business address unverifiable",
-      "ko": "사업장 주소 확인 불가"
-     },
-     {
-      "en": "Limited prior visit history",
-      "ko": "제한적인 이전 방문 기록"
-     }
-    ]
-   }
-  },
-  {
-   "id": 11,
-   "name": "RODRIGUEZ, Ana Patricia",
-   "nat": "Mexico",
-   "age": 29,
-   "sex": "F",
-   "purpose": "Tourism — K-pop concert (KSPO Dome, Seoul)",
-   "difficulty": "easy",
-   "correct": "a",
-   "crit": false,
-   "photo": "assets/photos/s11.jpg",
-   "passport": "assets/passports/s11.jpg",
-   "panels": [
-    {
-     "id": "profile",
-     "label": "Traveler Profile",
-     "ko": "여행자 정보",
-     "rows": [
-      {
-       "l": "Name",
-       "v": "RODRIGUEZ, Ana Patricia"
-      },
-      {
-       "l": "Nationality",
-       "v": "Mexico"
-      },
-      {
-       "l": "Age / Sex",
-       "v": "29 / F"
-      },
-      {
-       "l": "Purpose",
-       "v": "Tourism — K-pop concert (KSPO Dome)"
-      },
-      {
-       "l": "Intended stay",
-       "v": "7 days"
-      },
-      {
-       "l": "Accommodation",
-       "v": "Myeongdong Boutique Hotel (confirmed)"
-      }
-     ]
-    },
-    {
-     "id": "doc",
-     "label": "Document Check",
-     "ko": "서류 심사",
-     "rows": [
-      {
-       "l": "Passport",
-       "v": "Valid · Exp 2031-03-08"
-      },
-      {
-       "l": "Authentication",
-       "v": "No anomalies"
-      },
-      {
-       "l": "Visa",
-       "v": "C-3 Tourist · valid"
-      },
-      {
-       "l": "Biometric",
-       "v": "98.3% facial match"
-      }
-     ]
-    },
-    {
-     "id": "db",
-     "label": "ICRM / Database",
-     "ko": "출입국 기록",
-     "rows": [
-      {
-       "l": "Entry bans",
-       "v": "None"
-      },
-      {
-       "l": "Prior violations",
-       "v": "None"
-      },
-      {
-       "l": "Prior visits",
-       "v": "2 tourist visits (2 & 1 yr ago, 6 days each — consistent K-pop tourism pattern)"
-      }
-     ]
-    },
-    {
-     "id": "apis",
-     "label": "APIS / Intelligence",
-     "ko": "사전입국정보",
-     "rows": [
-      {
-       "l": "Concert ticket",
-       "v": "World tour ticket confirmed via APIS — event registered, KSPO Dome, this weekend"
-      },
-      {
-       "l": "Return ticket",
-       "v": "AM097 confirmed, 7 days"
-      },
-      {
-       "l": "Financial indicators",
-       "v": "Sufficient funds — travel savings documented"
-      }
-     ]
-    }
-   ],
-   "ai": {
-    "score": 11,
-    "rec": "ALLOW ENTRY",
-    "recKo": "입국 허가",
-    "level": "low",
-    "conf": 96,
-    "factors": [
-     {
-      "en": "Consistent with prior tourist visit pattern",
-      "ko": "이전 관광 방문 패턴과 일치"
-     },
-     {
-      "en": "Event ticket & return flight confirmed",
-      "ko": "이벤트 티켓 및 귀국 항공권 확인됨"
-     },
-     {
-      "en": "No adverse records",
-      "ko": "불리한 기록 없음"
-     }
-    ]
-   }
-  },
-  {
-   "id": 12,
-   "name": "OSEI-BONSU, Emmanuel K.",
-   "nat": "Ghana",
-   "age": 52,
-   "sex": "M",
-   "purpose": "Business — construction materials sourcing (KCON trade expo)",
-   "difficulty": "hard",
-   "correct": "s",
-   "crit": false,
-   "photo": "assets/photos/s12.jpg",
-   "passport": "assets/passports/s12.jpg",
-   "panels": [
-    {
-     "id": "profile",
-     "label": "Traveler Profile",
-     "ko": "여행자 정보",
-     "rows": [
-      {
-       "l": "Name",
-       "v": "OSEI-BONSU, Emmanuel Kwame"
-      },
-      {
-       "l": "Nationality",
-       "v": "Ghana"
-      },
-      {
-       "l": "Age / Sex",
-       "v": "52 / M"
-      },
-      {
-       "l": "Purpose",
-       "v": "Business — construction materials sourcing"
-      },
-      {
-       "l": "Intended stay",
-       "v": "90 days (long-stay business visa)"
-      },
-      {
-       "l": "Accommodation",
-       "v": "Serviced apartment, Mapo-gu (self-reported, unconfirmed)"
-      }
-     ]
-    },
-    {
-     "id": "doc",
-     "label": "Document Check",
-     "ko": "서류 심사",
-     "rows": [
-      {
-       "l": "Passport",
-       "v": "Valid · Exp 2028-11-14"
-      },
-      {
-       "l": "Authentication",
-       "v": "No anomalies"
-      },
-      {
-       "l": "Visa",
-       "v": "D-9 Business · 90-day single entry"
-      },
-      {
-       "l": "Biometric",
-       "v": "94.6% facial match"
-      }
-     ]
-    },
-    {
-     "id": "db",
-     "label": "ICRM / Database",
-     "ko": "출입국 기록",
-     "rows": [
-      {
-       "l": "Entry bans",
-       "v": "None"
-      },
-      {
-       "l": "Prior violations",
-       "v": "None"
-      },
-      {
-       "l": "Prior visits",
-       "v": "1 visit 4 yrs ago (purpose unclear in record)"
-      },
-      {
-       "warn": true,
-       "v": "Domestic address registration on file from 4 yrs ago with NO corresponding entry stamp for that period. Possible prior unauthorized stay OR data entry error."
-      }
-     ]
-    },
-    {
-     "id": "apis",
-     "label": "APIS / Intelligence",
-     "ko": "사전입국정보",
-     "rows": [
-      {
-       "l": "Return ticket",
-       "v": "NOT confirmed — claims flexible departure after business"
-      },
-      {
-       "l": "Financial indicators",
-       "v": "Business account on file — insufficient documentation for 90-day stay"
-      },
-      {
-       "l": "KCON expo",
-       "v": "Registered event — exhibitor list does NOT include claimant firm"
-      }
-     ]
-    }
-   ],
-   "ai": {
-    "score": 58,
-    "rec": "REFER TO SECONDARY",
-    "recKo": "2차 심사 의뢰",
-    "level": "med",
-    "conf": 61,
-    "factors": [
-     {
-      "en": "Long-stay application (90 days)",
-      "ko": "장기 체류 신청 (90일)"
-     },
-     {
-      "en": "Return ticket unconfirmed",
-      "ko": "귀국 항공권 미확정"
-     },
-     {
-      "en": "Address registration anomaly in database — manual review required",
-      "ko": "데이터베이스 내 주소 등록 기록 이상 — 수동 검토 필요"
-     }
-    ]
-   }
-  }
- ]
+  ]
 }

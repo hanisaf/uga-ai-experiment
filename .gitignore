@@ -2,7 +2,7 @@
 /firebase-debug.log
 /firebase-debug.*.log
 .firebaserc
-
+.DS_Store
 # Firebase Hosting
 /firebase.json
 *.cache
