@@ -28,8 +28,15 @@
   "use strict";
 
   var C = { ink:'#1f2a37', accent:'#2f5e8f', green:'#2f7d57', amber:'#b9740f', red:'#b23b3b' };
-  var colorOf = { low:C.green, med:C.amber, high:C.red };
-  var tint = { low:['#eef6f1','#cbe2d4'], med:['#fbf3ea','#ecd9bd'], high:['#f9edec','#e8cdcb'] };
+
+  // Queue load reads as a day-type, not a headcount. The raw 50/200/500 figures were
+  // never calibrated to Incheon and participants cannot contextualise them, so the
+  // categorical label carries the intended workload perception directly. The integer
+  // is still what gets exported.
+  var QUEUE_EN = { 50:'Light traffic', 200:'Normal load', 500:'Busy day' };
+  var QUEUE_KO = { 50:'한산한 날',       200:'보통 날',      500:'바쁜 날'   };
+  function queueLabel(){   return QUEUE_EN[App.queueSize] || QUEUE_EN[200]; }
+  function queueLabelKo(){ return QUEUE_KO[App.queueSize] || QUEUE_KO[200]; }
 
   function esc(s){
     return String(s==null?'':s).replace(/[&<>"]/g,function(c){
@@ -46,15 +53,20 @@
     sess: {},
     tid: null,
     rtid: null,                // return-countdown interval handle
-    elapsedSec: 0,             // seconds elapsed on the current scenario (counts up)
     queueSize: 200,            // between-subjects queue-load condition
     transparent: true,
+    showConfidence: true,      // whether the AI states confidence in its own recommendation
     guid: '',
     returnUrl: '',
     debug: false,
     autoReturn: false,         // auto-redirect to return_url on completion
     returnDelay: 6,            // seconds to show results before auto-return
-    MAX_URL: 7500,             // safety cap on the whole return URL (chars)
+    // Safety cap on the whole return URL. 7500 was conservative to the point of
+    // shedding referral comments on ordinary sessions once per-panel timing joined the
+    // export; 16000 sits about half of Chrome's ~32k practical ceiling, well clear of
+    // a realistic session (~5.5k) and roomy enough for Korean comments, which
+    // percent-encode to ~9 chars each. "Copy export data" always holds the full record.
+    MAX_URL: 16000,
     orderMode: 'shuffle',      // 'shuffle' | 'random' (seeded) | 'default' | 'explicit'
     orderSeed: 42,
     orderIds: [],              // explicit presentation order, when orderMode==='explicit'
@@ -70,6 +82,11 @@
     App.queueSize = [50,200,500].indexOf(pQ)>=0 ? pQ : 200;
     var pT = qp.get('transparent');
     App.transparent = pT!==null ? (pT==='1'||pT==='true') : true;
+    // Whether the AI states how confident it is in its own recommendation. Kept
+    // separate from `transparent` (which governs the contributing-factors list) so the
+    // two can be crossed or held constant independently. On unless switched off.
+    var pC = qp.get('show_confidence');
+    App.showConfidence = pC!==null ? (pC==='1'||pC==='true') : true;
     App.guid = qp.get('guid') || (window.crypto && crypto.randomUUID ? crypto.randomUUID() :
       'xxxx-xxxx-xxxx'.replace(/x/g, function(){ return Math.floor(Math.random()*16).toString(16); }));
     App.returnUrl = qp.get('return_url') || qp.get('returnUrl') || '';
@@ -106,7 +123,7 @@
   function labelFor(d){
     return d==='a' ? 'Allow' :
            d==='sr' ? 'Secondary (Rejection)' :
-           d==='si' ? 'Secondary (Info)' : '—';
+           d==='si' ? 'Secondary (Checking/Info)' : '—';
   }
 
   // Seeded PRNG (mulberry32) so order=random reproduces an identical sequence for
@@ -185,20 +202,27 @@
   // and no forced decision: Incheon officers have no hard per-passenger limit, only
   // an internalised ~60s norm, so a countdown would imply a deadline that does not
   // exist. Accumulating time supplies the queue pressure instead, and the elapsed
-  // value itself (decision_time_ms) is the behavioural measure.
+  // value itself (decision_first_ms) is the behavioural measure.
+  // The displayed figure is derived from the same wall clock as the exported decision
+  // times, never from a count of interval ticks. Counting ticks let the two drift apart
+  // whenever the interval was throttled — a background tab clamps setInterval to ~1s
+  // minimum and coalesces timers — so the screen could read 0:11 on a decision the
+  // export recorded at 12.4s. The interval below only refreshes the DOM; it no longer
+  // carries the value, so display and export cannot disagree.
+  function elapsedSec(){
+    return Math.max(0, Math.floor((Date.now()-App.scenarioStart)/1000));
+  }
+
   function startTimer(){
     clearInterval(App.tid);
-    App.elapsedSec = 0;
     updateTimerDom();
-    App.tid = setInterval(function(){
-      App.elapsedSec++;
-      updateTimerDom();
-    }, 1000);
+    App.tid = setInterval(updateTimerDom, 1000);
   }
 
   function timerLabelText(){
-    var m = Math.floor(App.elapsedSec/60);
-    var s = App.elapsedSec%60;
+    var el = elapsedSec();
+    var m = Math.floor(el/60);
+    var s = el%60;
     return m+':'+(s<10?'0':'')+s+' · 경과 시간';
   }
 
@@ -219,10 +243,21 @@
     set[id] = willOpen; opened[cur] = set;
     var viewed = App.state.viewed;
     var vs = Object.assign({}, viewed[cur]||{});
+    var s = scenario();
+    var now = Date.now(), t = now - App.scenarioStart;
+    var stats = App.sess[s.id].panel_stats;
+    var ps = stats[id] || (stats[id] = { opens:0, first_ms:null, dwell_ms:0, openedAt:null });
     if(willOpen){
       vs[id] = true;
-      var s = scenario();
-      App.sess[s.id].panels_opened.push({ panel:id, t_ms:Date.now()-App.scenarioStart });
+      ps.opens++;
+      if(ps.first_ms==null) ps.first_ms = t;
+      ps.openedAt = now;
+      App.sess[s.id].panels_opened.push({ panel:id, t_ms:t });
+    } else if(ps.openedAt!=null){
+      // Closing is what makes dwell measurable — opens alone cannot say how long a
+      // section stayed on screen.
+      ps.dwell_ms += now - ps.openedAt;
+      ps.openedAt = null;
     }
     viewed[cur] = vs;
     render();
@@ -243,13 +278,33 @@
     if(s) App.sess[s.id].comment = v;
   }
 
+  // Panels left open when the officer advances never receive a close click, so their
+  // dwell is settled here. Called on the way out of every scenario, which makes dwell
+  // cover the full time a section was expanded rather than only closed intervals.
+  function flushPanelDwell(){
+    var s = scenario();
+    if(!s || !App.sess[s.id]) return;
+    var stats = App.sess[s.id].panel_stats, now = Date.now();
+    Object.keys(stats).forEach(function(id){
+      var ps = stats[id];
+      if(ps.openedAt!=null){ ps.dwell_ms += now - ps.openedAt; ps.openedAt = null; }
+    });
+  }
+
   function decide(d){
     captureComment();
-    clearInterval(App.tid);
+    // The clock deliberately keeps running. Stopping it here froze the display at the
+    // first click while the exported time kept advancing to the latest one, so a
+    // participant who decided, read on, then switched would be recorded at a time the
+    // interface never showed. Elapsed now runs until the officer advances.
     var s = scenario();
+    var log = App.sess[s.id];
     var ms = Date.now()-App.scenarioStart;
-    App.sess[s.id].decision = d==='a'?'allow':d==='sr'?'secondary-reject':'secondary-info';
-    App.sess[s.id].decision_time_ms = ms;
+    var prev = App.state.dec[App.state.cur];
+    log.decision = d==='a'?'allow':d==='sr'?'secondary-reject':'secondary-info';
+    if(log.decision_first_ms==null) log.decision_first_ms = ms;   // first commitment
+    log.decision_final_ms = ms;                                    // last commitment
+    if(prev && prev!==d) log.decision_changes++;                   // genuine reversals only
     App.state.dec[App.state.cur] = d;
     App.state.decMs[App.state.cur] = ms;
     // Switching to Allow retracts the referral, so the referral note goes with it.
@@ -259,6 +314,7 @@
 
   function next(){
     captureComment();
+    flushPanelDwell();
     var last = App.data.length-1;
     if(App.state.cur>=last){ clearInterval(App.tid); App.state.view='results'; render(); startReturnCountdown(); return; }
     App.state.cur += 1;
@@ -270,7 +326,7 @@
   function restart(){
     clearInterval(App.tid); cancelReturn();
     var order = makeOrder(App.data);
-    App.data.forEach(function(s){ App.sess[s.id] = { panels_opened:[], decision:null, decision_time_ms:null, comment:'' }; });
+    App.data.forEach(function(s){ App.sess[s.id] = { panels_opened:[], panel_stats:{}, decision:null, decision_first_ms:null, decision_final_ms:null, decision_changes:0, comment:'' }; });
     App.taskStart = Date.now(); App.scenarioStart = Date.now();
     Object.assign(App.state, { order:order, cur:0, view:'task', dec:{}, decMs:{}, comments:{}, opened:{}, viewed:{}, copied:false, returnIn:null });
     render();
@@ -293,6 +349,8 @@
   function cancelReturn(){ clearInterval(App.rtid); App.rtid = null; }
 
   // ---- Qualtrics export ----------------------------------------------------
+  var LEFT_PANELS = ['profile','doc','db','apis'];   // canonical case-file panel order
+
   function buildExportParams(opts){
     opts = opts || {};
     var p = new URLSearchParams();
@@ -302,6 +360,7 @@
     p.set('guid', App.guid);
     p.set('queue_size', String(App.queueSize));
     p.set('transparent', App.transparent?'1':'0');
+    p.set('show_confidence', App.showConfidence?'1':'0');
     p.set('scenario_order', orderIds.join(','));
     p.set('order_mode', App.orderMode);
     if(App.orderMode==='random') p.set('order_seed', String(App.orderSeed));
@@ -313,11 +372,42 @@
       var d = App.state.dec[pos] || 'NA';
       var log = App.sess[s.id];
       if(d===s.correct){ correct++; if(s.crit) caught[s.id] = 1; }
-      var nPanels = new Set(log.panels_opened.map(function(e){ return e.panel; })).size;
+      // Which sections were opened, not just how many. Emitted as one comma list in a
+      // fixed panel order (rather than four 1/0 columns per scenario) to keep the
+      // return URL clear of the cap — sixty extra parameters would push events_log out
+      // on most sessions. Splits into dummies trivially in analysis; the open ORDER and
+      // timings remain in events_log.
+      var openedSet = {};
+      log.panels_opened.forEach(function(e){ openedSet[e.panel] = 1; });
+      var openedIds = LEFT_PANELS.filter(function(id){ return openedSet[id]; });
+      Object.keys(openedSet).forEach(function(id){        // anything outside the known four
+        if(LEFT_PANELS.indexOf(id)<0) openedIds.push(id);
+      });
+      var nPanels = openedIds.length;
       panelsTotal += nPanels;
       p.set('s'+s.id+'_dec', d);
-      p.set('s'+s.id+'_time', String(log.decision_time_ms==null?'':log.decision_time_ms));
+      p.set('s'+s.id+'_time_first',   String(log.decision_first_ms==null?'':log.decision_first_ms));
+      p.set('s'+s.id+'_time_final',   String(log.decision_final_ms==null?'':log.decision_final_ms));
+      p.set('s'+s.id+'_dec_changes',  String(log.decision_changes||0));
       p.set('s'+s.id+'_panels', String(nPanels));
+      p.set('s'+s.id+'_panels_open', openedIds.join(','));
+
+      // Panel-level attention, promoted out of events_log so it survives the URL
+      // length guard. Packed as panel:value lists — one column per scenario rather
+      // than four, which keeps 15 scenarios inside the cap. Dwell is per panel and
+      // panels can be open at the same time, so these need not sum to sN_time.
+      var stats = log.panel_stats || {};
+      var dwell = [], opens = [], first = [];
+      LEFT_PANELS.forEach(function(pid){
+        var ps = stats[pid];
+        if(!ps || !ps.opens) return;
+        dwell.push(pid+':'+ps.dwell_ms);
+        opens.push(pid+':'+ps.opens);
+        first.push(pid+':'+ps.first_ms);
+      });
+      p.set('s'+s.id+'_panel_dwell', dwell.join(','));
+      p.set('s'+s.id+'_panel_opens', opens.join(','));
+      p.set('s'+s.id+'_panel_first', first.join(','));
       if(!opts.omitComments) p.set('s'+s.id+'_comment', App.state.comments[pos]||'');
     });
 
@@ -337,6 +427,7 @@
     } else {
       p.set('events_log', JSON.stringify({
         guid:App.guid, queue_size:App.queueSize, transparent:App.transparent,
+      show_confidence:App.showConfidence,
         order_mode:App.orderMode, scenario_order:orderIds, scenarios:App.sess
       }));
     }
@@ -377,7 +468,7 @@
   // ---- Render --------------------------------------------------------------
   function shell(inner){
     var guidShort = App.guid.slice(0,8);
-    var condLabel = App.transparent?'transparent':'opaque';
+    var condLabel = (App.transparent?'transparent':'opaque')+(App.showConfidence?'':' · no conf');
     return ''+
     '<div style="min-height:100vh;background:#eceef1;font-family:\'IBM Plex Sans\',\'IBM Plex Sans KR\',sans-serif;color:#1f2a37;padding:40px 24px 48px;-webkit-font-smoothing:antialiased;">'+
       '<div style="max-width:1120px;margin:0 auto 20px;display:flex;justify-content:space-between;align-items:flex-end;gap:16px;">'+
@@ -385,17 +476,16 @@
           '<div style="font-family:\'IBM Plex Mono\',monospace;font-size:11px;letter-spacing:.14em;color:#9aa3b1;font-weight:500;text-transform:uppercase;">Confidential research instrument · 연구용 자료</div>'+
           '<h1 style="margin:7px 0 5px;font-size:26px;font-weight:700;letter-spacing:-.02em;color:#1f2a37;">AI-Assisted Passenger Screening <span style="font-weight:500;color:#6b7480;font-size:18px;">· AI 보조 출입국 심사</span></h1>'+
           '<div style="font-size:13px;color:#5b6573;line-height:1.6;max-width:760px;">Review each passenger\'s file and decide whether to allow entry, or refer to secondary screening — either recommending rejection or requesting additional information. The AI risk assessment is provided to assist your judgment — not to replace it.</div>'+
-          '<div style="font-size:11.5px;color:#9aa3b1;margin-top:9px;font-family:\'IBM Plex Mono\',monospace;letter-spacing:.01em;">Behavioral task · 15 scenarios&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;Safadi · Kim · Schanke — UGA / UCF · August 2026</div>'+
         '</div>'+
         '<div style="flex:none;text-align:right;">'+
           '<div title="'+esc(App.guid)+'" style="display:inline-block;padding:6px 11px;border:1px solid #dde2e8;border-radius:7px;background:#fff;font-family:\'IBM Plex Mono\',monospace;font-size:10.5px;color:#6b7480;letter-spacing:.03em;white-space:nowrap;">SESSION&nbsp;&nbsp;'+esc(guidShort)+'</div>'+
-          '<div style="font-family:\'IBM Plex Mono\',monospace;font-size:10px;color:#aab2bd;margin-top:5px;">queue '+App.queueSize+' · '+condLabel+'</div>'+
+          '<div style="font-family:\'IBM Plex Mono\',monospace;font-size:10px;color:#aab2bd;margin-top:5px;">'+queueLabel()+' · '+condLabel+'</div>'+
         '</div>'+
       '</div>'+
       '<div style="max-width:1120px;margin:0 auto;background:#fff;border:1px solid #dde2e8;border-radius:12px;box-shadow:0 1px 2px rgba(20,30,45,.04),0 18px 40px -18px rgba(20,30,45,.16);overflow:hidden;">'+
         inner+
       '</div>'+
-      '<div style="max-width:1120px;margin:16px auto 0;font-size:11px;color:#9aa3b1;line-height:1.6;text-align:center;">All scenarios are fictional and the AI system is simulated for research purposes. · 본 과제의 모든 시나리오는 허구이며 AI 시스템은 연구 목적의 시뮬레이션입니다.<br>URL parameters: <span style="font-family:\'IBM Plex Mono\',monospace;">queue_size</span> (50 / 200 / 500) · <span style="font-family:\'IBM Plex Mono\',monospace;">transparent</span> (1/0) · <span style="font-family:\'IBM Plex Mono\',monospace;">guid</span> · <span style="font-family:\'IBM Plex Mono\',monospace;">return_url</span> · <span style="font-family:\'IBM Plex Mono\',monospace;">order</span> (random/default/id list) · <span style="font-family:\'IBM Plex Mono\',monospace;">debug</span> (1 shows difficulty)</div>'+
+      '<div style="max-width:1120px;margin:16px auto 0;font-size:11px;color:#9aa3b1;line-height:1.6;text-align:center;">All scenarios are fictional and the AI system is simulated for research purposes. · 본 과제의 모든 시나리오는 허구이며 AI 시스템은 연구 목적의 시뮬레이션입니다.<br>URL parameters: <span style="font-family:\'IBM Plex Mono\',monospace;">queue_size</span> (50 / 200 / 500) · <span style="font-family:\'IBM Plex Mono\',monospace;">transparent</span> (1/0) · <span style="font-family:\'IBM Plex Mono\',monospace;">show_confidence</span> (1/0) · <span style="font-family:\'IBM Plex Mono\',monospace;">guid</span> · <span style="font-family:\'IBM Plex Mono\',monospace;">return_url</span> · <span style="font-family:\'IBM Plex Mono\',monospace;">order</span> (random/default/id list) · <span style="font-family:\'IBM Plex Mono\',monospace;">order_seed</span> (int) · <span style="font-family:\'IBM Plex Mono\',monospace;">auto_return</span> (1/0) · <span style="font-family:\'IBM Plex Mono\',monospace;">return_delay</span> (0–60 s) · <span style="font-family:\'IBM Plex Mono\',monospace;">debug</span> (1 = difficulty + skip)</div>'+
     '</div>';
   }
 
@@ -414,14 +504,12 @@
     var opened = st.opened[cur]||{};
     var viewed = st.viewed[cur]||{};
     var ai = s.ai;
-    var aiColor = colorOf[ai.level];
     var dec = st.dec[cur];
     var last = cur===total-1;
 
     // Panels
     var panelsHtml = s.panels.map(function(p){
       var isOpen = !!opened[p.id];
-      var hasWarn = p.rows.some(function(r){ return r.warn; });
       // Document Check opens with the biometric comparison the officer actually
       // performs: the headshot on file beside the live capture at the counter.
       var showPhotos = p.id==='doc' && s.passport_photo && s.counter_photo;
@@ -455,7 +543,6 @@
         '<div data-toggle="'+esc(p.id)+'" style="display:flex;justify-content:space-between;align-items:center;gap:10px;padding:12px 14px;cursor:pointer;user-select:none;background:#fbfcfd;">'+
           '<span style="display:flex;align-items:center;gap:9px;font-size:13px;font-weight:600;min-width:0;">'+
             '<span style="white-space:nowrap;">'+esc(p.label)+'</span> <span style="color:#9aa3b1;font-weight:500;font-size:12px;white-space:nowrap;">'+esc(p.ko)+'</span>'+
-            (hasWarn?'<span style="display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;border-radius:4px;background:#fbf0e3;color:#b9740f;font-size:11px;font-weight:700;flex:none;">!</span>':'')+
           '</span>'+
           '<span style="font-family:\'IBM Plex Mono\',monospace;font-size:11px;color:#9aa3b1;white-space:nowrap;">'+(isOpen?'– Hide':'+ View')+'</span>'+
         '</div>'+
@@ -468,7 +555,7 @@
     if(App.transparent){
       var flist = ai.factors.map(function(f){
         return '<div style="display:flex;gap:9px;padding:4px 0;line-height:1.45;">'+
-          '<span style="color:'+aiColor+';flex:none;font-weight:600;font-size:12.5px;">—</span>'+
+          '<span style="color:#8a94a3;flex:none;font-weight:600;font-size:12.5px;">—</span>'+
           '<span style="min-width:0;">'+
             '<span style="display:block;font-size:12.5px;color:#46505e;">'+esc(f.en)+'</span>'+
             '<span style="display:block;font-size:12px;color:#6b7480;margin-top:1px;">'+esc(f.ko)+'</span>'+
@@ -483,9 +570,10 @@
     // Decision buttons. Frontline officers cannot deny entry — denial is decided
     // above them after secondary review — so the choice is allow, or refer with a
     // rejection recommendation, or refer requesting more information.
-    var allowStyle = mkBtn(dec==='a',  C.green,  tint.low[0], tint.low[1]);
-    var srStyle    = mkBtn(dec==='sr', C.amber,  tint.med[0], tint.med[1]);
-    var siStyle    = mkBtn(dec==='si', C.accent, '#eef4fa',   '#c8d9eb');
+    // Deliberately uncoloured. A green/amber/red ramp would nudge severity
+    // perception independently of the AI manipulation, so all three options read
+    // identically until one is chosen, which then fills solid.
+    function decBtn(d){ return mkBtn(dec===d, '#1f2a37', '#f7f9fb', '#d4dae1'); }
 
     // Optional free-text basis for a referral. Capped because Korean characters
     // percent-encode to ~9 chars each in the Qualtrics return URL.
@@ -531,7 +619,7 @@
         '<div style="display:flex;align-items:center;gap:9px;flex:none;">'+
           '<div style="display:flex;align-items:center;gap:8px;padding:8px 13px;border-radius:8px;border:1px solid #dde2e8;background:#f6f8fa;color:#46505e;font-size:12px;font-weight:600;white-space:nowrap;">'+
             '<span style="font-family:\'IBM Plex Mono\',monospace;font-size:10px;color:#9aa3b1;font-weight:500;letter-spacing:.06em;">QUEUE</span>'+
-            '<span>'+App.queueSize.toLocaleString()+' 명 대기 · waiting</span>'+
+            '<span>'+queueLabel()+' · '+queueLabelKo()+'</span>'+
           '</div>'+
           '<div style="display:flex;align-items:center;gap:8px;padding:8px 13px;border-radius:8px;border:1px solid #cbd8e6;background:#eef4fa;color:#2f5e8f;font-size:12px;font-weight:600;white-space:nowrap;">'+
             '<span id="timerDot" style="width:7px;height:7px;border-radius:50%;flex:none;background:#2f5e8f;"></span><span id="timerLabel">'+timerLabelText()+'</span>'+
@@ -541,10 +629,12 @@
       '</div>'+
       '<div style="display:flex;justify-content:space-between;align-items:center;gap:16px;padding:11px 22px;background:#f6f8fa;border-bottom:1px solid #eaeef2;">'+
         '<div style="min-width:0;">'+
-          '<span style="font-size:15.5px;font-weight:600;letter-spacing:-.01em;">'+esc(s.name)+'</span>'+
-          '<span style="font-size:12.5px;color:#5b6573;margin-left:12px;">'+esc(s.nat+'  ·  Age '+s.age+' / '+s.sex+'  ·  '+s.purpose)+'</span>'+
-          '<div style="font-family:\'IBM Plex Mono\',monospace;font-size:11px;color:#9aa3b1;letter-spacing:.02em;margin-top:3px;">'+esc('ICN-'+String(s.id).padStart(3,'0'))+' · '+esc('Passenger '+(cur+1)+' of '+total)+(App.debug?' <span style="color:#b9740f;">· difficulty: '+esc(s.difficulty)+'</span>':'')+'</div>'+
+          '<div style="font-family:\'IBM Plex Mono\',monospace;font-size:12px;color:#9aa3b1;letter-spacing:.02em;">'+esc('Passenger '+(cur+1)+' of '+total)+(App.debug?' <span style="color:#b9740f;">· difficulty: '+esc(s.difficulty)+'</span>':'')+'</div>'+
         '</div>'+
+      '</div>'+
+      '<div style="padding:7px 22px;background:#f0f4f8;border-bottom:1px solid #e7ebf0;font-size:11.5px;color:#7a838f;line-height:1.5;">'+
+        '<span><b style="color:#46505e;">Case record (left)</b> — automated immigration database, compiled before the passenger reached the counter.</span>'+
+        '<span style="margin-left:16px;"><b style="color:#46505e;">AI assessment (right)</b> — the AI system\'s assessment and recommended decision.</span>'+
       '</div>'+
       '<div style="display:grid;grid-template-columns:1.08fr .92fr;">'+
         '<div style="padding:16px 18px;border-right:1px solid #eaeef2;display:flex;flex-direction:column;gap:8px;">'+
@@ -557,21 +647,16 @@
         '<div style="padding:16px 18px;display:flex;flex-direction:column;gap:14px;">'+
           '<div style="border:1px solid #e6eaef;border-radius:10px;padding:16px;background:linear-gradient(180deg,#fbfcfe,#ffffff);">'+
             '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:11px;">'+
-              '<span style="font-size:10.5px;letter-spacing:.1em;font-weight:600;color:#8a94a3;text-transform:uppercase;">AI Risk Assessment</span>'+
-              '<span style="font-size:11.5px;color:#9aa3b1;">AI 위험 평가</span>'+
+              '<span style="font-size:10.5px;letter-spacing:.1em;font-weight:600;color:#8a94a3;text-transform:uppercase;">AI Assessment</span>'+
+              '<span style="font-size:11.5px;color:#9aa3b1;">AI 평가</span>'+
             '</div>'+
-            '<div style="display:flex;align-items:flex-end;gap:15px;">'+
-              '<div style="font-family:\'IBM Plex Mono\',monospace;font-size:42px;font-weight:600;line-height:.9;color:'+aiColor+';">'+ai.score+'<span style="font-size:15px;color:#9aa3b1;font-weight:400;">/100</span></div>'+
-              '<div style="padding-bottom:4px;">'+
-                '<span style="display:inline-block;padding:4px 11px;border-radius:6px;font-size:11.5px;font-weight:600;line-height:1.35;color:#fff;background:'+aiColor+';">'+esc(ai.rec)+'</span>'+
-                '<div style="font-size:11.5px;color:#8a94a3;margin-top:5px;">'+esc(ai.recKo)+' · 신뢰도 '+ai.conf+'%</div>'+
-              '</div>'+
-            '</div>'+
-            '<div style="position:relative;height:6px;border-radius:3px;margin:16px 0 5px;background:linear-gradient(90deg,#2f7d57 0%,#c9ad3e 50%,#b23b3b 100%);opacity:.82;">'+
-              '<div style="position:absolute;top:-3px;width:3px;height:12px;border-radius:2px;background:#1f2a37;box-shadow:0 0 0 2px #fff;left:calc('+ai.score+'% - 1.5px);"></div>'+
-            '</div>'+
-            '<div style="display:flex;justify-content:space-between;font-family:\'IBM Plex Mono\',monospace;font-size:9.5px;color:#aab2bd;letter-spacing:.04em;">'+
-              '<span>0 · LOW</span><span>50</span><span>HIGH · 100</span>'+
+            '<div>'+
+              '<span style="display:inline-block;padding:6px 13px;border-radius:6px;border:1px solid #d4dae1;background:#f2f4f7;color:#1f2a37;font-size:12px;font-weight:600;line-height:1.35;">'+esc(ai.rec)+'</span>'+
+              '<div style="font-size:11.5px;color:#8a94a3;margin-top:6px;">'+esc(ai.recKo)+'</div>'+
+              (App.showConfidence
+                ? '<div style="font-size:13px;color:#5b6573;margin-top:9px;">System confidence in this recommendation · <b style="color:#1f2a37;">'+ai.conf+'%</b></div>'+
+                  '<div style="font-size:11.5px;color:#9aa3b1;margin-top:2px;">이 추천에 대한 시스템 신뢰도</div>'
+                : '')+
             '</div>'+
             factorsHtml+
           '</div>'+
@@ -581,9 +666,9 @@
               '<span style="font-size:11.5px;color:#9aa3b1;">심사 결정</span>'+
             '</div>'+
             '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;">'+
-              '<button data-decide="a" style="'+allowStyle+'"><span style="font-size:17px;line-height:1;">✓</span><span style="font-size:11.5px;line-height:1.3;">Allow Entry</span><span style="font-size:10px;opacity:.82;">입국 허가</span></button>'+
-              '<button data-decide="sr" style="'+srStyle+'"><span style="font-size:15px;line-height:1;">→✕</span><span style="font-size:11px;line-height:1.3;">Secondary —<br>Recommending Rejection</span><span style="font-size:10px;opacity:.82;">2차 심사 — 거부 권고</span></button>'+
-              '<button data-decide="si" style="'+siStyle+'"><span style="font-size:15px;line-height:1;">→?</span><span style="font-size:11px;line-height:1.3;">Secondary —<br>Requesting Information</span><span style="font-size:10px;opacity:.82;">2차 심사 — 정보 요청</span></button>'+
+              '<button data-decide="a" style="'+decBtn('a')+'"><span style="font-size:17px;line-height:1;">✓</span><span style="font-size:11.5px;line-height:1.3;">Allow Entry</span><span style="font-size:10px;opacity:.82;">입국 허가</span></button>'+
+              '<button data-decide="si" style="'+decBtn('si')+'"><span style="font-size:15px;line-height:1;">→?</span><span style="font-size:10.5px;line-height:1.3;">Secondary —<br>Checking / Requesting Further Information</span><span style="font-size:9.5px;opacity:.82;">2차 심사 — 정보 확인/추가 요청</span></button>'+
+              '<button data-decide="sr" style="'+decBtn('sr')+'"><span style="font-size:15px;line-height:1;">→✕</span><span style="font-size:10.5px;line-height:1.3;">Secondary —<br>Recommending Rejection</span><span style="font-size:9.5px;opacity:.82;">2차 심사 — 거부 권고</span></button>'+
             '</div>'+
             commentHtml+
             '<div style="display:flex;justify-content:space-between;margin-top:11px;font-size:11.5px;color:#8a94a3;">'+
@@ -591,6 +676,7 @@
               '<span style="font-family:\'IBM Plex Mono\',monospace;">'+reviewed+'</span>'+
             '</div>'+
             '<button data-next="1" '+(dec?'':'disabled')+' style="'+nextStyle+'">'+(last?'View results · 결과 보기  →':'Next passenger · 다음 승객  →')+'</button>'+
+            (App.debug?'<button data-skip="1" style="margin-top:6px;width:100%;padding:7px;border:1px dashed #9aa3b1;border-radius:7px;background:transparent;color:#9aa3b1;font-family:inherit;font-size:11.5px;cursor:pointer;">⚡ Skip (debug) · 건너뛰기</button>':'')+
           '</div>'+
         '</div>'+
       '</div>'+
@@ -648,7 +734,7 @@
             '<div style="font-size:11.5px;color:#7a838f;margin-top:6px;">Correct decisions · 정확한 결정</div>'+
           '</div>'+
           '<div style="flex:1;background:#f7f9fb;border:1px solid #eaeef2;border-radius:10px;padding:16px;text-align:center;">'+
-            '<div style="font-family:\'IBM Plex Mono\',monospace;font-size:30px;font-weight:600;color:'+critColor+';line-height:1;">'+critIds+'</div>'+
+            '<div style="font-family:\'IBM Plex Mono\',monospace;font-size:22px;font-weight:600;color:'+critColor+';line-height:1.15;padding:4px 0;">'+critIds+'</div>'+
             '<div style="font-size:11.5px;color:#7a838f;margin-top:6px;">'+critLabel+'</div>'+
           '</div>'+
           '<div style="flex:1;background:#f7f9fb;border:1px solid #eaeef2;border-radius:10px;padding:16px;text-align:center;">'+
@@ -656,7 +742,7 @@
             '<div style="font-size:11.5px;color:#7a838f;margin-top:6px;">Sections opened · 확인 항목</div>'+
           '</div>'+
           '<div style="flex:1;background:#f7f9fb;border:1px solid #eaeef2;border-radius:10px;padding:16px;text-align:center;">'+
-            '<div style="font-family:\'IBM Plex Mono\',monospace;font-size:30px;font-weight:600;color:#1f2a37;line-height:1;">'+App.queueSize+'</div>'+
+            '<div style="font-size:20px;font-weight:600;color:#1f2a37;line-height:1.15;padding:5px 0;">'+queueLabel()+'</div>'+
             '<div style="font-size:11.5px;color:#7a838f;margin-top:6px;">Queue condition · 대기 조건</div>'+
           '</div>'+
         '</div>'+
@@ -712,6 +798,9 @@
       });
     }
     var nb = root.querySelector('[data-next]'); if(nb) nb.addEventListener('click', function(){ if(!nb.disabled) next(); });
+    // QA only (?debug=1): default to Allow if nothing is chosen, then advance.
+    var sk = root.querySelector('[data-skip]');
+    if(sk) sk.addEventListener('click', function(){ if(!App.state.dec[App.state.cur]) decide('a'); next(); });
     var cp = root.querySelector('[data-copy]'); if(cp) cp.addEventListener('click', copyExport);
     var gq = root.querySelector('[data-goq]'); if(gq) gq.addEventListener('click', goQualtrics);
     var rs = root.querySelector('[data-restart]'); if(rs) rs.addEventListener('click', restart);
@@ -722,7 +811,7 @@
   fetch('assets/scenarios.json').then(function(r){ return r.json(); }).then(function(j){
     App.data = j.scenarios;
     var order = makeOrder(App.data);
-    App.data.forEach(function(s){ App.sess[s.id] = { panels_opened:[], decision:null, decision_time_ms:null, comment:'' }; });
+    App.data.forEach(function(s){ App.sess[s.id] = { panels_opened:[], panel_stats:{}, decision:null, decision_first_ms:null, decision_final_ms:null, decision_changes:0, comment:'' }; });
     App.scenarioStart = Date.now();
     App.state.loading = false;
     App.state.order = order;

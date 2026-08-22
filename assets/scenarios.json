@@ -98,8 +98,8 @@
       ],
       "ai": {
         "score": 56,
-        "rec": "REFER TO SECONDARY SCREENING",
-        "recKo": "2차 심사 회부",
+        "rec": "REFER TO SECONDARY — REQUESTING FURTHER INFORMATION",
+        "recKo": "2차 심사 회부 — 정보 확인/추가 요청",
         "level": "med",
         "conf": 63,
         "factors": [
@@ -263,8 +263,8 @@
       ],
       "ai": {
         "score": 67,
-        "rec": "REFER TO SECONDARY SCREENING",
-        "recKo": "2차 심사 회부",
+        "rec": "REFER TO SECONDARY — RECOMMENDING REJECTION",
+        "recKo": "2차 심사 회부 — 거부 권고",
         "level": "med",
         "conf": 68,
         "factors": [
@@ -424,8 +424,8 @@
       ],
       "ai": {
         "score": 52,
-        "rec": "REFER TO SECONDARY SCREENING",
-        "recKo": "2차 심사 회부",
+        "rec": "REFER TO SECONDARY — REQUESTING FURTHER INFORMATION",
+        "recKo": "2차 심사 회부 — 정보 확인/추가 요청",
         "level": "med",
         "conf": 71,
         "factors": [
@@ -533,8 +533,8 @@
       ],
       "ai": {
         "score": 61,
-        "rec": "REFER TO SECONDARY SCREENING",
-        "recKo": "2차 심사 회부",
+        "rec": "REFER TO SECONDARY — REQUESTING FURTHER INFORMATION",
+        "recKo": "2차 심사 회부 — 정보 확인/추가 요청",
         "level": "med",
         "conf": 66,
         "factors": [
@@ -640,8 +640,8 @@
       ],
       "ai": {
         "score": 58,
-        "rec": "REFER TO SECONDARY SCREENING",
-        "recKo": "2차 심사 회부",
+        "rec": "REFER TO SECONDARY — REQUESTING FURTHER INFORMATION",
+        "recKo": "2차 심사 회부 — 정보 확인/추가 요청",
         "level": "med",
         "conf": 61,
         "factors": [
@@ -696,8 +696,8 @@
       ],
       "ai": {
         "score": 71,
-        "rec": "REFER TO SECONDARY SCREENING",
-        "recKo": "2차 심사 회부",
+        "rec": "REFER TO SECONDARY — RECOMMENDING REJECTION",
+        "recKo": "2차 심사 회부 — 거부 권고",
         "level": "med",
         "conf": 68,
         "factors": [
@@ -750,8 +750,8 @@
       ],
       "ai": {
         "score": 44,
-        "rec": "REFER TO SECONDARY — REQUESTING ADDITIONAL INFORMATION",
-        "recKo": "2차 심사 회부 — 추가 정보 요청",
+        "rec": "REFER TO SECONDARY — REQUESTING FURTHER INFORMATION",
+        "recKo": "2차 심사 회부 — 정보 확인/추가 요청",
         "level": "med",
         "conf": 61,
         "factors": [

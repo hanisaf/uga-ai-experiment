@@ -95,7 +95,7 @@
   <header>
     <div class="eyebrow">Confidential research instrument · 연구용 자료</div>
     <h1>AI-Assisted Passenger Screening <span class="ko">· AI 보조 출입국 심사</span></h1>
-    <p class="lede">Design overview and test URLs for the behavioral screening task. Participants review 15 fictional passenger case files alongside a simulated AI risk score under a countdown timer, and decide <b>Allow</b> / <b>Secondary — Rejection</b> / <b>Secondary — Info</b> for each. Behavioral data is exported back to Qualtrics via URL parameters.</p>
+    <p class="lede">Design overview and test URLs for the behavioral screening task. Participants review 15 fictional passenger case files alongside a simulated AI recommendation, with elapsed time counting up, and decide <b>Allow Entry</b> / <b>Secondary — Checking&nbsp;/&nbsp;Requesting Further Information</b> / <b>Secondary — Recommending Rejection</b> for each. Behavioral data is exported back to Qualtrics via URL parameters.</p>
     <div class="byline">Behavioral task · 15 scenarios&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;Safadi · Kim · Schanke — UGA / UCF · August 2026</div>
   </header>
 
@@ -106,7 +106,7 @@
 
     <div class="links">
       <div class="lk">
-        <div class="desc">Default — transparent condition, randomized timer <span class="ko">· 기본 (설명 표시)</span></div>
+        <div class="desc">Default — transparent condition, fresh per-session shuffle <span class="ko">· 기본 (설명 표시)</span></div>
         <a href="survey.html">survey.html</a>
       </div>
       <div class="lk">
@@ -114,23 +114,31 @@
         <a href="survey.html?transparent=1">?transparent=1</a>
       </div>
       <div class="lk">
-        <div class="desc"><span class="pill o">opaque</span> score only, no explanation <span class="ko">· 점수만 표시</span></div>
+        <div class="desc"><span class="pill o">opaque</span> recommendation + confidence only <span class="ko">· 추천만 표시</span></div>
         <a href="survey.html?transparent=0">?transparent=0</a>
       </div>
       <div class="lk">
-        <div class="desc"><span class="pill o">queue</span> Light traffic — 50 waiting <span class="ko">· 한산</span></div>
+        <div class="desc"><span class="pill o">queue</span> Light traffic <span class="ko">· 한산한 날</span></div>
         <a href="survey.html?queue_size=50">?queue_size=50</a>
       </div>
       <div class="lk">
-        <div class="desc"><span class="pill o">queue</span> Heavy traffic — 500 waiting <span class="ko">· 혼잡</span></div>
+        <div class="desc"><span class="pill o">queue</span> Busy day <span class="ko">· 바쁜 날</span></div>
         <a href="survey.html?queue_size=500">?queue_size=500</a>
       </div>
       <div class="lk">
-        <div class="desc">Opaque + heavy queue <span class="ko">· 점수만 + 혼잡</span></div>
+        <div class="desc"><span class="pill o">no conf</span> recommendation only, no confidence <span class="ko">· 신뢰도 숨김</span></div>
+        <a href="survey.html?show_confidence=0">?show_confidence=0</a>
+      </div>
+      <div class="lk">
+        <div class="desc">Leanest AI panel — no factors, no confidence <span class="ko">· 추천만</span></div>
+        <a href="survey.html?transparent=0&show_confidence=0">?transparent=0&amp;show_confidence=0</a>
+      </div>
+      <div class="lk">
+        <div class="desc">Opaque + busy day <span class="ko">· 추천만 + 바쁜 날</span></div>
         <a href="survey.html?transparent=0&queue_size=500">?transparent=0&amp;queue_size=500</a>
       </div>
       <div class="lk">
-        <div class="desc">QA / debug — shows scenario difficulty labels <span class="ko">· 난이도 표시</span></div>
+        <div class="desc">QA / debug — difficulty labels + per-scenario skip button <span class="ko">· 난이도 표시 + 건너뛰기</span></div>
         <a href="survey.html?debug=1">?debug=1</a>
       </div>
       <div class="lk">
@@ -144,7 +152,7 @@
     </div>
 
     <h3>Serving locally</h3>
-    <p>From inside the <code>design_handoff_screening_terminal/</code> folder:</p>
+    <p>From the project folder:</p>
     <pre>python3 -m http.server 8731
 <span class="cm"># then open  http://localhost:8731/</span></pre>
     <p class="small muted">Any static server works (<code>npx serve</code>, <code>php -S</code>, nginx, S3…). The only requirement is that <code>index.html</code>, <code>survey.html</code>, and <code>assets/</code> are served from the same origin.</p>
@@ -164,13 +172,19 @@
           <td><code>transparent</code></td>
           <td><code>1</code> / <code>0</code></td>
           <td><code>1</code></td>
-          <td><b>Between-subjects IV.</b> <code>1</code> shows the AI's bilingual "Contributing factors" list; <code>0</code> hides it (score + recommendation only). This is the condition you randomize.</td>
+          <td><b>Between-subjects IV.</b> <code>1</code> shows the AI's bilingual "Contributing factors" list; <code>0</code> hides it (recommended decision + confidence only). This is the condition you randomize.</td>
+        </tr>
+        <tr>
+          <td><code>show_confidence</code></td>
+          <td><code>1</code> / <code>0</code></td>
+          <td><code>1</code></td>
+          <td><b>Between-subjects condition.</b> <code>1</code> shows "System confidence in this recommendation · NN%" beneath the AI's recommended decision; <code>0</code> hides it, leaving the recommendation with no numeric cue at all. Independent of <code>transparent</code>, so the two can be crossed or either held constant. The value used is exported as <code>show_confidence</code>.</td>
         </tr>
         <tr>
           <td><code>queue_size</code></td>
           <td><code>50</code> / <code>200</code> / <code>500</code></td>
           <td><code>200</code></td>
-          <td><b>Between-subjects condition.</b> Passengers waiting, shown as a chip beside the timer and held constant for the whole session. 50 = light traffic, 200 = normal load, 500 = very busy. Any other value falls back to 200. Randomize this in Qualtrics alongside the transparency condition.</td>
+          <td><b>Between-subjects condition.</b> Workload, held constant for the whole session and shown beside the timer as a <b>day-type label, not a headcount</b> — <code>50</code> = "Light traffic · 한산한 날", <code>200</code> = "Normal load · 보통 날", <code>500</code> = "Busy day · 바쁜 날". The raw integer is still what gets exported. Any other value falls back to 200. Randomize this in Qualtrics alongside the transparency condition.</td>
         </tr>
         <tr>
           <td><code>order</code></td>
@@ -194,7 +208,7 @@
           <td><code>return_url</code></td>
           <td>URL</td>
           <td>none</td>
-          <td>Qualtrics survey URL to redirect back to on completion; the export query string is appended. Required to collect data back.</td>
+          <td>Qualtrics survey URL to redirect back to on completion; the export query string is appended. Required to collect data back. Also accepted spelled <code>returnUrl</code>; <code>return_url</code> wins if both are present. Prefer the snake_case form — the alias exists only for backward compatibility.</td>
         </tr>
         <tr>
           <td><code>auto_return</code></td>
@@ -212,29 +226,35 @@
           <td><code>debug</code></td>
           <td><code>1</code> / <code>0</code></td>
           <td><code>0</code></td>
-          <td>QA only — shows each scenario's difficulty rating inline and <b>disables auto-return</b> so you can inspect the export screen. <b>Never enable in production.</b></td>
+          <td>QA only — shows each scenario's difficulty rating inline, adds a <b>⚡ Skip</b> button that auto-selects Allow and advances (so you can walk all 15 quickly), and <b>disables auto-return</b> so you can inspect the export screen. <b>Never enable in production.</b></td>
         </tr>
       </tbody>
     </table>
     <div class="note warn"><b>Careful with <code>transparent</code>.</b> The default <code>1</code> applies only when the parameter is <b>absent</b>. Any other <i>present</i> value (e.g. <code>2</code>, <code>yes</code>, empty) is treated as <code>0</code> (opaque) — so always pass exactly <code>1</code> or <code>0</code>.</div>
-    <div class="note"><b>The timer counts up, not down.</b> Each passenger opens at <span class="mono">0:00 · 경과 시간</span> and accumulates while the officer deliberates. There is <b>no ceiling, no expiry and no forced decision</b> — Incheon officers have no hard per-passenger limit, only an internalised norm of about 60 seconds, so a countdown would imply a deadline that does not exist. Accumulating time supplies the queue pressure instead, and the elapsed value itself (<code>sN_time</code>) is the behavioural measure. The norm is shown beside the timer as <span class="mono">팀 평균 ~60초</span>. <i>(This supersedes the August 2026 countdown and its OVERTIME flag; <code>timer_sec</code> and <code>sN_expired</code> no longer exist.)</i></div>
-    <div class="note warn"><b>Officers cannot deny entry.</b> Denial is an administrative decision taken above the frontline after secondary review, so the interface offers <b>Allow Entry</b>, <b>Secondary — Recommending Rejection</b>, and <b>Secondary — Requesting Additional Information</b>. Either secondary option reveals an optional free-text box (300 characters) for the basis of the referral. The old <i>Deny Entry</i> button is gone, and <code>sN_dec</code> is now coded <code>a</code> / <code>sr</code> / <code>si</code> / <code>NA</code>.</div>
-    <div class="note"><b>Leave <code>order</code> unset in production.</b> Omitting it gives each participant a fresh shuffle with the AI-error trials (S5, S9) kept out of the first two and last two positions. <code>order=random</code> is the opposite — one fixed sequence for <i>everyone</i> — so use it for pilots and demos, not for a live wave where you want order counterbalanced across participants.</div>
+    <div class="note"><b>The timer counts up, not down.</b> Each passenger opens at <span class="mono">0:00 · 경과 시간</span> and accumulates while the officer deliberates. There is <b>no ceiling, no expiry and no forced decision</b> — Incheon officers have no hard per-passenger limit, only an internalised norm of about 60 seconds, so a countdown would imply a deadline that does not exist. Accumulating time supplies the queue pressure instead, and the elapsed value itself (<code>sN_time_first</code>) is the behavioural measure. The norm is shown beside the timer as <span class="mono">팀 평균 ~60초</span>. <i>(This supersedes the August 2026 countdown and its OVERTIME flag; <code>timer_sec</code> and <code>sN_expired</code> no longer exist.)</i></div>
+    <div class="note warn"><b>Timing audit — two defects found and fixed.</b> Both would have made <code>sN_time</code> disagree with the task as the participant experienced it, which is exactly the discrepancy flagged from a prior project. <b>(1)</b> The clock used to stop on the first decision click while the exported time kept advancing to the <i>latest</i> click, so an officer who decided at 0:10, read on, and switched at 0:40 was recorded at 40&nbsp;s against a display frozen at 0:10. The clock now runs until they advance, and the two moments are exported separately as <code>sN_time_first</code> and <code>sN_time_final</code>. <b>(2)</b> The display counted <code>setInterval</code> ticks while the export read the wall clock, so the two drifted apart whenever timers were throttled — a backgrounded tab clamps and coalesces them. The display is now derived from the same wall clock as the export, leaving only sub-second <code>floor()</code> rounding between them. Measured after the fix: screen 13&nbsp;s vs export 13,816&nbsp;ms, and the gap no longer accumulates.</div>
+    <div class="note warn"><b>Officers cannot deny entry.</b> Denial is an administrative decision taken above the frontline after secondary review, so the interface offers, left to right by severity, <b>Allow Entry</b>, <b>Secondary — Checking / Requesting Further Information</b>, and <b>Secondary — Recommending Rejection</b>. The three buttons are deliberately uncoloured — a green/amber/red ramp would nudge severity perception independently of the AI manipulation. Either secondary option reveals an optional free-text box (300 characters) for the basis of the referral. The old <i>Deny Entry</i> button is gone, and <code>sN_dec</code> is now coded <code>a</code> / <code>sr</code> / <code>si</code> / <code>NA</code>.</div>
+    <div class="note warn"><b>The AI panel shows a decision, not a risk score.</b> The numeric <span class="mono">NN/100</span> figure, the green-to-red risk bar and its <span class="mono">LOW … HIGH</span> axis have all been <b>removed</b>, along with the colour coding on the recommendation badge. What the officer now sees is the AI's <b>recommended decision</b> and its <b>confidence in that recommendation</b> — relabelled from the old <span class="mono">신뢰도</span> to make clear it is the system's certainty about its own output, not an independent risk metric. Scenario data still carries <code>ai.score</code> and <code>ai.level</code>, but nothing renders them. This narrows what <code>transparent</code> toggles: it now controls only the contributing-factors list. The confidence line has its own switch, <code>show_confidence</code>, so the panel can be run as recommendation&nbsp;+&nbsp;confidence&nbsp;+&nbsp;factors, any pair, or a bare recommendation with no numbers at all.</div>
+    <div class="note warn"><b>Confidence values are authored, not computed.</b> Each scenario carries a hand-written <code>ai.conf</code> integer in <code>assets/scenarios.json</code> (range 61–97, mean 78). They were written as a companion to the numeric risk score, loosely tracking its distance from 50 — so a mid-range score got a low confidence. <b>That score is no longer displayed</b>, which leaves confidence as the only number the officer sees, carrying weight it was never calibrated for. The three AI-error trials sit at S5&nbsp;68, S9&nbsp;78, S13&nbsp;68. Worth a deliberate pass before a live wave — or run <code>show_confidence=0</code>.</div>
+    <div class="note warn"><b>Panel attention is exported directly, not only inside <code>events_log</code>.</b> Every <span class="mono">+ View</span> and every collapse is timed, and the per-panel result is promoted into its own URL parameters (<code>sN_panel_opens</code>, <code>sN_panel_dwell</code>, <code>sN_panel_first</code>) so it survives the length guard — <code>events_log</code> is the first thing shed when the URL runs long, and on a realistic 15-case session it <i>is</i> shed. The trade-off is budget: these three families cost about <b>2,600 characters</b>, which is what prompted raising the cap to 16,000 so referral comments are no longer squeezed out. Watch the QA line under <code>?debug=1</code>, which prints the exact redirect length.</div>
+    <div class="note"><b>Passenger details live behind the panels.</b> The scenario subheader shows only <span class="mono">Passenger N of 15</span>. Name, case ID, nationality, age/sex and purpose are no longer previewed above the fold — every piece of case information requires an explicit panel open, so <code>sN_panels</code> and <code>sN_panels_open</code> measure information seeking without anything being given away for free.</div>
+    <div class="note"><b>Leave <code>order</code> unset in production.</b> Omitting it gives each participant a fresh shuffle with the three AI-error trials (S5, S9, S13) confined to positions 3–11 of 15 — never the first three or last three — and never two of them adjacent. <code>order=random</code> is the opposite — one fixed sequence for <i>everyone</i> — so use it for pilots and demos, not for a live wave where you want order counterbalanced across participants.</div>
     <p class="small muted">The app always <b>exports the values it actually used</b>, so the condition each participant ran is recoverable from the returned data alone. The sequence actually presented always comes back as <code>scenario_order</code>, whichever mode produced it. A <code>queue_size</code> outside {50, 200, 500} falls back to 200, and an unrecognised <code>order</code> value falls back to the default per-session shuffle.</p>
   </div>
 
   <!-- RANDOMIZATION -->
   <div class="card">
     <h2><span class="n">▸</span> Randomizing across participants <span class="ko">참가자별 무작위 배정</span></h2>
-    <p>The manipulated factor is <b>transparency</b> (2 cells). <b>Queue load</b> is a between-subjects condition that can be treated as a third factor or as a covariate. Pick one of the two designs below.</p>
+    <p>The manipulated factor is <b>transparency</b> (2 cells). <b>Queue load</b> is a between-subjects condition that can be treated as a factor or as a covariate. Pick one of the two designs below.</p>
+    <div class="note warn"><b>A third switch exists: <code>show_confidence</code>.</b> It is <b>not</b> part of either design below, which assume it is held constant at its default <code>1</code>. Crossing all three (transparency × queue × confidence) would give <b>12 cells</b> — with ~1,000 officers that is ~83 per cell, thin for detecting an interaction. Treat confidence as a held-constant design choice unless the team decides otherwise; if you do manipulate it, add a two-path randomizer and re-plan cell sizes, because neither table below accounts for it.</div>
 
     <h3>Approach A — Recommended</h3>
     <p>Randomize <code>transparent</code> and <code>queue_size</code> independently per participant. Transparency is the manipulated factor; queue load enters analysis as a covariate first and as a moderator in follow-up, which is the recommendation while cell sizes are uncertain.</p>
     <pre><span class="cm"># Transparent (AI explanation shown)</span>
-survey.html?transparent=1&queue_size=&lt;50|200|500&gt;&guid=&lt;RESPONSE_ID&gt;&return_url=&lt;QUALTRICS_RETURN&gt;
+survey.html?transparent=1&queue_size=&lt;50|200|500&gt;&show_confidence=1&guid=&lt;RESPONSE_ID&gt;&return_url=&lt;QUALTRICS_RETURN&gt;
 
-<span class="cm"># Opaque (score only, no explanation)</span>
-survey.html?transparent=0&queue_size=&lt;50|200|500&gt;&guid=&lt;RESPONSE_ID&gt;&return_url=&lt;QUALTRICS_RETURN&gt;</pre>
+<span class="cm"># Opaque (recommendation + confidence only, no explanation)</span>
+survey.html?transparent=0&queue_size=&lt;50|200|500&gt;&show_confidence=1&guid=&lt;RESPONSE_ID&gt;&return_url=&lt;QUALTRICS_RETURN&gt;</pre>
     <p class="small muted">Example balanced assignment for 10 participants (both conditions randomized independently):</p>
     <table>
       <thead><tr><th>Participant</th><th class="ctr">transparent</th><th class="ctr">queue_size</th></tr></thead>
@@ -285,14 +305,16 @@ survey.html?transparent=0&queue_size=500&guid=&lt;ID&gt;&return_url=&lt;RETURN&g
     <h2><span class="n">▸</span> Wiring it up in Qualtrics <span class="ko">Qualtrics 연동</span></h2>
     <p>Don't hand out static per-participant URLs. Qualtrics assigns the condition and builds the URL for each respondent on the fly, piping its own <code>ResponseID</code> in as the <code>guid</code>.</p>
     <ol style="font-size:13.5px;color:var(--muted);padding-left:20px;line-height:1.75;">
-      <li><b>Randomize the condition.</b> Add an Embedded Data field <code>transparent</code>, then use a <b>Randomizer</b> that sets <code>transparent=1</code> on one path and <code>transparent=0</code> on the other (Evenly Present = balanced). Add a second Embedded Data field <code>queue_size</code> with its own randomizer over 50/200/500 (or 6 combined paths for Approach B).</li>
+      <li><b>Randomize the condition.</b> Add an Embedded Data field <code>transparent</code>, then use a <b>Randomizer</b> that sets <code>transparent=1</code> on one path and <code>transparent=0</code> on the other (Evenly Present = balanced). Add a second Embedded Data field <code>queue_size</code> with its own randomizer over 50/200/500 (or 6 combined paths for Approach B). Add a third, <code>show_confidence</code>, set to a constant <code>1</code> unless you are manipulating it — in which case give it its own two-path randomizer.</li>
       <li><b>Place the task</b> on a survey page as a full-width iframe or a redirect, with parameters piped from embedded data:</li>
     </ol>
-    <pre>survey.html?transparent=${e://Field/transparent}&queue_size=${e://Field/queue_size}&guid=${e://Field/ResponseID}&return_url=${e://Field/return_url}</pre>
+    <pre>survey.html?transparent=${e://Field/transparent}&queue_size=${e://Field/queue_size}&show_confidence=${e://Field/show_confidence}&guid=${e://Field/ResponseID}&return_url=${e://Field/return_url}</pre>
+    <p class="small muted">Piping <code>show_confidence</code> is worthwhile even when you are <b>not</b> manipulating it — set the embedded-data field to a constant <code>1</code>. The value then comes back in the export, so the condition each participant ran is recoverable from the data alone rather than from your memory of how the wave was configured. Drop it from the URL only if you are content to rely on the default.</p>
     <ol start="3" style="font-size:13.5px;color:var(--muted);padding-left:20px;line-height:1.75;">
       <li><b>Set <code>return_url</code></b> to the survey's own continue URL. When the participant finishes, the task <b>auto-returns</b> them there with all behavioral data appended (no click needed).</li>
       <li><b>Capture the returned data</b> by declaring matching embedded-data fields on the return page (see next section).</li>
     </ol>
+    <p class="small muted">Those are the only parameters production needs. The rest — <code>order</code>, <code>order_seed</code>, <code>auto_return</code>, <code>return_delay</code>, <code>debug</code> — are deliberately left at their defaults in a live wave; each is described in the <b>URL parameters</b> table above, and <code>debug</code> must never be set in production.</p>
     <div class="note">Keep <code>guid = ResponseID</code>. That single key is what lets you join the rich behavioral export to each Qualtrics response afterward.</div>
   </div>
 
@@ -302,27 +324,42 @@ survey.html?transparent=0&queue_size=500&guid=&lt;ID&gt;&return_url=&lt;RETURN&g
     <p>When the participant finishes the 15th decision, the app builds one query string of all results and <b>redirects the browser to <code>return_url</code></b> with it appended. Two safeguards make this reliable in the field:</p>
     <ul style="font-size:13.5px;color:var(--muted);padding-left:20px;line-height:1.7;">
       <li><b>Auto-return</b> fires on its own (default 6&nbsp;s, tunable with <code>return_delay</code>) so data still returns if the participant walks away — a "Submitting your data…" banner and a manual button back it up. Off in <code>debug</code>.</li>
-      <li><b>URL-length guard.</b> Referral comments are the volatile part: Korean percent-encodes to about nine characters each, so fifteen filled comments can exceed the 7500-char cap on their own. The app sheds the bulky <code>events_log</code> first, then the comments, setting <code>events_log_dropped=1</code> and <code>comments_dropped=1</code> so the loss is visible in the data. All summary fields always survive, and the complete record stays recoverable via <b>Copy export data</b>.</li>
+      <li><b>URL-length guard.</b> Referral comments are the volatile part: Korean percent-encodes to about nine characters each, so fifteen filled comments can still exceed the cap on their own. The cap is <b>16,000 characters</b> — raised from 7,500, which had become tight enough that ordinary sessions were shedding comments once per-panel timing joined the export. 16,000 is about half of Chrome's practical ceiling, and a realistic 15-case session with Korean notes lands near <b>6,100</b>. The app sheds the bulky <code>events_log</code> first, then the comments, setting <code>events_log_dropped=1</code> and <code>comments_dropped=1</code> so the loss is visible in the data. All summary fields always survive, and the complete record stays recoverable via <b>Copy export data</b>.</li>
     </ul>
     <p>To record the data, point <code>return_url</code> at a Qualtrics survey and add an <b>Embedded Data</b> element at the top of its Survey Flow listing every field name below (no values) — Qualtrics auto-fills each from the matching URL parameter. Because <code>guid = ResponseID</code>, <b>join on <code>guid</code></b> to attach it to the participant's response.</p>
-    <div class="note warn"><b>The Embedded Data field list changed shape — not just size.</b> Six families were <b>removed</b> (<code>timer_sec</code>, <code>sN_expired</code>, <code>n_expired</code>, <code>sN_correct</code>, <code>sN_difficulty</code>, <code>sN_override</code>) and new ones added (<code>queue_size</code>, <code>sN_comment</code>, <code>fp2_caught</code>), while <code>n_correct</code> was renamed <code>correct_total</code>. Delete the retired fields and add the new ones before your next wave, or you will collect empty columns alongside stale ones.</div>
-    <h3>Full field list — paste into the Embedded Data element <span class="ko">74개 필드</span></h3>
-    <pre>guid, queue_size, transparent, scenario_order, order_mode, order_seed,
-s1_dec, s1_time, s1_panels, s1_comment,
-s2_dec, s2_time, s2_panels, s2_comment,
-s3_dec, s3_time, s3_panels, s3_comment,
-s4_dec, s4_time, s4_panels, s4_comment,
-s5_dec, s5_time, s5_panels, s5_comment,
-s6_dec, s6_time, s6_panels, s6_comment,
-s7_dec, s7_time, s7_panels, s7_comment,
-s8_dec, s8_time, s8_panels, s8_comment,
-s9_dec, s9_time, s9_panels, s9_comment,
-s10_dec, s10_time, s10_panels, s10_comment,
-s11_dec, s11_time, s11_panels, s11_comment,
-s12_dec, s12_time, s12_panels, s12_comment,
-s13_dec, s13_time, s13_panels, s13_comment,
-s14_dec, s14_time, s14_panels, s14_comment,
-s15_dec, s15_time, s15_panels, s15_comment,
+    <div class="note warn"><b>The Embedded Data field list changed shape — not just size.</b> Six families were <b>removed</b> (<code>timer_sec</code>, <code>sN_expired</code>, <code>n_expired</code>, <code>sN_correct</code>, <code>sN_difficulty</code>, <code>sN_override</code>) and new ones added (<code>queue_size</code>, <code>show_confidence</code>, <code>sN_comment</code>, <code>sN_panels_open</code>, <code>sN_panel_opens</code>, <code>sN_panel_dwell</code>, <code>sN_panel_first</code>, <code>fp2_caught</code>), while <code>n_correct</code> was renamed <code>correct_total</code>. Delete the retired fields and add the new ones before your next wave, or you will collect empty columns alongside stale ones.</div>
+    <h3>Full field list — paste into the Embedded Data element <span class="ko">165개 필드</span></h3>
+    <pre>guid, queue_size, transparent, show_confidence, scenario_order, order_mode, order_seed,
+s1_dec, s1_time_first, s1_time_final, s1_dec_changes, s1_panels, s1_panels_open, s1_comment,
+  s1_panel_opens, s1_panel_dwell, s1_panel_first,
+s2_dec, s2_time_first, s2_time_final, s2_dec_changes, s2_panels, s2_panels_open, s2_comment,
+  s2_panel_opens, s2_panel_dwell, s2_panel_first,
+s3_dec, s3_time_first, s3_time_final, s3_dec_changes, s3_panels, s3_panels_open, s3_comment,
+  s3_panel_opens, s3_panel_dwell, s3_panel_first,
+s4_dec, s4_time_first, s4_time_final, s4_dec_changes, s4_panels, s4_panels_open, s4_comment,
+  s4_panel_opens, s4_panel_dwell, s4_panel_first,
+s5_dec, s5_time_first, s5_time_final, s5_dec_changes, s5_panels, s5_panels_open, s5_comment,
+  s5_panel_opens, s5_panel_dwell, s5_panel_first,
+s6_dec, s6_time_first, s6_time_final, s6_dec_changes, s6_panels, s6_panels_open, s6_comment,
+  s6_panel_opens, s6_panel_dwell, s6_panel_first,
+s7_dec, s7_time_first, s7_time_final, s7_dec_changes, s7_panels, s7_panels_open, s7_comment,
+  s7_panel_opens, s7_panel_dwell, s7_panel_first,
+s8_dec, s8_time_first, s8_time_final, s8_dec_changes, s8_panels, s8_panels_open, s8_comment,
+  s8_panel_opens, s8_panel_dwell, s8_panel_first,
+s9_dec, s9_time_first, s9_time_final, s9_dec_changes, s9_panels, s9_panels_open, s9_comment,
+  s9_panel_opens, s9_panel_dwell, s9_panel_first,
+s10_dec, s10_time_first, s10_time_final, s10_dec_changes, s10_panels, s10_panels_open, s10_comment,
+  s10_panel_opens, s10_panel_dwell, s10_panel_first,
+s11_dec, s11_time_first, s11_time_final, s11_dec_changes, s11_panels, s11_panels_open, s11_comment,
+  s11_panel_opens, s11_panel_dwell, s11_panel_first,
+s12_dec, s12_time_first, s12_time_final, s12_dec_changes, s12_panels, s12_panels_open, s12_comment,
+  s12_panel_opens, s12_panel_dwell, s12_panel_first,
+s13_dec, s13_time_first, s13_time_final, s13_dec_changes, s13_panels, s13_panels_open, s13_comment,
+  s13_panel_opens, s13_panel_dwell, s13_panel_first,
+s14_dec, s14_time_first, s14_time_final, s14_dec_changes, s14_panels, s14_panels_open, s14_comment,
+  s14_panel_opens, s14_panel_dwell, s14_panel_first,
+s15_dec, s15_time_first, s15_time_final, s15_dec_changes, s15_panels, s15_panels_open, s15_comment,
+  s15_panel_opens, s15_panel_dwell, s15_panel_first,
 correct_total, panels_total,
 fp_caught, fn_caught, fp2_caught,
 events_log, events_log_dropped, comments_dropped</pre>
@@ -330,16 +367,22 @@ events_log, events_log_dropped, comments_dropped</pre>
       <thead><tr><th>Field(s)</th><th>Contents</th></tr></thead>
       <tbody>
         <tr><td class="mono-cell">guid</td><td>Session ID = the Qualtrics ResponseID you passed in. <b>Join key.</b></td></tr>
-        <tr><td class="mono-cell">queue_size, transparent</td><td><b>New / unchanged.</b> The two between-subjects conditions this participant actually ran.</td></tr>
+        <tr><td class="mono-cell">queue_size, transparent, show_confidence</td><td>The between-subjects conditions this participant actually ran. <code>show_confidence</code> is <b>new</b>: <code>1</code> when the AI's confidence line was displayed.</td></tr>
         <tr><td class="mono-cell">scenario_order</td><td>The 15 scenario ids in the order actually presented.</td></tr>
         <tr><td class="mono-cell">order_mode, order_seed</td><td>How that order was produced (<code>shuffle</code>/<code>random</code>/<code>default</code>/<code>explicit</code>); the seed appears only in <code>random</code> mode.</td></tr>
         <tr><td class="mono-cell">sN_dec</td><td>Decision on scenario N: <code>a</code> = Allow, <code>sr</code> = Secondary recommending rejection, <code>si</code> = Secondary requesting information, <code>NA</code> = no decision.</td></tr>
-        <tr><td class="mono-cell">sN_time</td><td>Elapsed ms from opening scenario N to the decision click. The primary time-pressure measure now that the timer counts up.</td></tr>
+        <tr><td class="mono-cell">sN_time_first</td><td><b>Replaces <code>sN_time</code>.</b> Elapsed ms from the passenger appearing to the <i>first</i> decision click. <b>This is the time-pressure DV</b> — it is the moment of commitment, uncontaminated by any later reconsideration.</td></tr>
+        <tr><td class="mono-cell">sN_time_final</td><td><b>New.</b> Elapsed ms to the <i>last</i> decision click. Equal to <code>sN_time_first</code> unless the officer changed their mind; the gap between them is time spent reconsidering.</td></tr>
+        <tr><td class="mono-cell">sN_dec_changes</td><td><b>New.</b> How many times the decision was switched to a <i>different</i> option after the first click. <code>0</code> for the overwhelming majority; above <code>0</code> means <code>sN_dec</code> is a revised answer, and the two time fields will differ.</td></tr>
         <tr><td class="mono-cell">sN_panels</td><td>Distinct case-file panels opened on scenario N (0–4) — per-trial depth of review.</td></tr>
+        <tr><td class="mono-cell">sN_panels_open</td><td><b>New.</b> <i>Which</i> panels were opened on scenario N, as a comma list in fixed order (<code>profile,doc,db,apis</code>) — empty when none were. Emitted as one field per scenario rather than four 1/0 columns to keep the return URL clear of the length cap; split into dummies in analysis. Open order and timings remain in <code>events_log</code>.</td></tr>
+        <tr><td class="mono-cell">sN_panel_opens</td><td><b>New.</b> How many times each section was expanded on scenario N, as <code>panel:count</code> (e.g. <code>profile:2,doc:1</code>). A count above 1 is a revisit — the officer went back to a section after closing it. Panels never opened are omitted.</td></tr>
+        <tr><td class="mono-cell">sN_panel_dwell</td><td><b>New.</b> Total milliseconds each section spent expanded, as <code>panel:ms</code>. Summed across revisits, and a section still open when the officer advances is closed out at that moment. <b>Panels can be open simultaneously</b>, so these need not sum to <code>sN_time_final</code>.</td></tr>
+        <tr><td class="mono-cell">sN_panel_first</td><td><b>New.</b> Milliseconds from the passenger appearing to the <i>first</i> expansion of each section, as <code>panel:ms</code>. Sorting these gives the order sections were consulted in.</td></tr>
         <tr><td class="mono-cell">sN_comment</td><td><b>New.</b> Free-text basis for a referral, up to 300 characters. Empty for Allow decisions and whenever the officer left it blank.</td></tr>
         <tr><td class="mono-cell">correct_total, panels_total</td><td>Session rollups across all 15 trials. <code>correct_total</code> was previously named <code>n_correct</code>.</td></tr>
         <tr><td class="mono-cell">fp_caught, fn_caught, fp2_caught</td><td>The three AI-error trials: <code>1</code> when the officer overrode the AI correctly — S5 Allowed, S9 sent to secondary recommending rejection, S13 Allowed. <code>fp2_caught</code> is new.</td></tr>
-        <tr><td class="mono-cell">events_log</td><td>JSON blob with the full per-panel timing trace plus every comment — parse it in analysis if you need more than the summary columns.</td></tr>
+        <tr><td class="mono-cell">events_log</td><td>JSON blob with the raw open sequence plus every comment. <b>Expect it to be absent.</b> It duplicates the whole export and costs ~14,000 characters encoded, so it is shed on any full session — keeping it would need a ~20,000-char cap. Everything analytically useful in it is now promoted to its own column, so its loss costs you only the exact open sequence, which <code>sN_panel_first</code> already orders.</td></tr>
         <tr><td class="mono-cell">events_log_dropped, comments_dropped</td><td><code>1</code> only when the URL guard had to shed that part to stay under the length cap; absent otherwise. See below.</td></tr>
       </tbody>
     </table>
@@ -356,6 +399,7 @@ events_log, events_log_dropped, comments_dropped</pre>
         <tr><td>See it locally</td><td><code>python3 -m http.server 8731</code>, then open <span class="mono">localhost:8731/survey.html</span></td></tr>
         <tr><td>Show the AI explanation</td><td><code>?transparent=1</code> (default)</td></tr>
         <tr><td>Hide the AI explanation</td><td><code>?transparent=0</code></td></tr>
+        <tr><td>Show / hide the AI's confidence</td><td><code>?show_confidence=1</code> (default) · <code>?show_confidence=0</code></td></tr>
         <tr><td>Normal queue load <i>(default)</i></td><td>omit <code>queue_size</code> → 200</td></tr>
         <tr><td>Light / heavy queue load</td><td><code>?queue_size=50</code> · <code>?queue_size=500</code></td></tr>
         <tr><td>Randomized scenario order <i>(recommended)</i></td><td>omit <code>order</code></td></tr>
@@ -368,6 +412,7 @@ events_log, events_log_dropped, comments_dropped</pre>
         <tr><td>Return instantly on finish</td><td><code>?return_delay=0</code></td></tr>
         <tr><td>Keep participant on results screen</td><td><code>?auto_return=0</code> (or <code>debug=1</code>)</td></tr>
         <tr><td>QA the difficulty labels + export screen</td><td><code>?debug=1</code> — never in production</td></tr>
+        <tr><td>Walk all 15 scenarios fast</td><td><code>?debug=1</code>, then the <b>⚡ Skip</b> button on each case</td></tr>
       </tbody>
     </table>
   </div>
