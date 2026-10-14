@@ -18,38 +18,55 @@ High-fidelity. Colors, typography, spacing, copy (English + Korean), and all int
 
 ## Files in this bundle
 - `survey.html` — the runnable instrument (standalone plain-JS port of the original prototype; serve over HTTP so it can fetch `assets/`).
-- `index.html` — **the user-facing documentation**: launch links, URL parameters, participant randomization, Qualtrics wiring, the 165-field paste list, and a quick reference. Anything operational belongs there, not here.
+- `index.html` — **the user-facing documentation**: launch links, URL parameters, participant randomization, Qualtrics wiring, the 166-field paste list, and a quick reference. Anything operational belongs there, not here.
 - `scripts/serve.sh`, `scripts/deploy.sh` — local run and Firebase deploy helpers.
 - `assets/scenarios.json` — all 15 case records (see Data Model below). Regenerated August 2026 from `Full_Survey_Instrument_Aug2026.docx` §5, which is the content source of truth.
 - `assets/people/sNN_passport.jpg` / `sNN_counter.jpg` — the two headshots per scenario (photo on file vs. live counter capture), s01–s15.
 - `assets/IMAGE_PROMPTS.md` — the Gemini prompts that generated those 30 images, kept for provenance and regeneration.
+- `tests/ui.test.js` — end-to-end Playwright suite (parameters, ordering, a scripted 15-case run checked field by field against the return URL, end-of-session modes, resume after reload, failure modes, layout at seven viewports). `tests/order.test.js` — 100k-draw check of the shuffle constraint. See **Testing** below.
 
 ## Screens / Views
-The component has three states, driven by internal `state.view` (`'task'` while `!loading`, `'results'` after the 15th decision) plus a `loading` gate before `scenarios.json` resolves.
+Views are driven by internal `state.view` — `'task'`, then after the 15th decision either `'results'` (scored, only with `show_results=1`) or `'done'` (neutral, the default); `'completed'` when a finished guid is reopened — plus a `loading` gate before `scenarios.json` resolves and a `loadError` flag if it fails.
 
-### 1. Loading state
-Centered text: "Loading case files…" / `assets/scenarios.json` in monospace, muted grey. Shown until fetch resolves.
+### 1. Loading state / load error
+Centered text: "Loading case files…" / `assets/scenarios.json` in monospace, muted grey. Shown until fetch resolves. If the fetch fails (network error, non-2xx status, malformed JSON, or a file with no `scenarios` array) the page shows a bilingual "The case files could not be loaded" message with a **Try again** button that re-runs `load()` (October 2026 — it used to sit on "Loading case files…" forever, with the error only in the console).
 
 ### 2. Screening task (one passenger at a time)
+**Page header** (above the card): the title "AI-Assisted Passenger Screening · AI 보조 출입국 심사" (21px) with the one-paragraph instruction beneath and the `SESSION xxxxxxxx` chip on the right. The "Confidential research instrument" eyebrow line was dropped and the padding tightened in October 2026 to buy vertical space (see Layout below). Under `debug=1` only, a line under the session chip shows the queue label and condition (`transparent`/`opaque`, `no conf`) — it used to be shown to everyone, which named the manipulation to participants.
+
 **Layout**: Card, max-width 1120px, white bg, 1px border `#dde2e8`, 12px radius, subtle shadow. Internally:
-- **Header bar** (flex row, 14×22px padding, border-bottom `#e7ebf0`): left = "ICIS" square logo (32×32, dark `#1f2a37` bg, white monospace text) + bilingual system title ("출입국심사정보시스템 · Immigration Control Information System") + subtitle line (airport / ministry, monospace, muted). Right = two chips: a neutral **queue chip** showing a day-type label, not a headcount (`QUEUE · Normal load · 보통 날`, border `#dde2e8`, bg `#f6f8fa`) — the raw 50/200/500 integer is still what gets exported and the **elapsed-time pill** (border `#cbd8e6`, bg `#eef4fa`, text `#2f5e8f`): dot + "M:SS · 경과 시간" + the norm cue "팀 평균 ~60초".
-- **Passenger strip** (bg `#f6f8fa`, border-bottom `#eaeef2`, 11×22 padding): a single monospace line, `Passenger N of 15` (difficulty appended only when `debug=1`). Name, case id, nationality, age/sex and purpose were **all removed on August 21 2026** — previously they were legible without opening anything, letting a participant form an impression without registering a panel-open event. Every piece of case information now sits behind an explicit panel open, which is what makes `sN_panels*` a clean information-seeking measure. The traveler thumbnail went on August 6 2026; the face images live inside the Document Check panel as a side-by-side pair.
+- **Header bar** (flex row, 10×22px padding, border-bottom `#e7ebf0`): left = "ICIS" square logo (32×32, dark `#1f2a37` bg, white monospace text) + bilingual system title ("출입국심사정보시스템 · Immigration Control Information System") + subtitle line (airport / ministry, monospace, muted). Right = two chips: a neutral **queue chip** showing a day-type label, not a headcount (`QUEUE · Normal load · 보통 날`, border `#dde2e8`, bg `#f6f8fa`) — the raw 50/200/500 integer is still what gets exported and the **elapsed-time pill** (border `#cbd8e6`, bg `#eef4fa`, text `#2f5e8f`): dot + "M:SS · 경과 시간" + the norm cue "팀 평균 ~60초".
+- **Passenger counter**: `Passenger N of 15` in monospace (difficulty appended only when `debug=1`), right-aligned in the case-file label row. It had its own full-width strip until October 2026; folding it into the label row saved ~37px of height. Name, case id, nationality, age/sex and purpose were **all removed on August 21 2026** — previously they were legible without opening anything, letting a participant form an impression without registering a panel-open event. Every piece of case information now sits behind an explicit panel open, which is what makes `sN_panels*` a clean information-seeking measure. The traveler thumbnail went on August 6 2026; the face images live inside the Document Check panel as a side-by-side pair.
 - **Panel-provenance strip** (bg `#f0f4f8`, border-bottom `#e7ebf0`, 11.5px muted): a static one-liner on every scenario distinguishing **Case record (left)** — automated immigration database, compiled before arrival — from **AI assessment (right)**. Added because first-time participants read the two columns as one source (Casey, August 21 2026).
 - **Two-column body** (`grid-template-columns: 1.08fr .92fr`):
-  - **Left = Case file**: section label row ("Case file · 심사 자료"). Four collapsible panels (Traveler Profile, Document Check, ICRM/Database, APIS/Intelligence), each a bordered rounded card with a clickable header (bilingual label + a monospace "+ View / – Hide" toggle). The `[!]` badge that used to appear on collapsed headers of panels containing a flagged row was **removed on August 21 2026** — it revealed which panels held warnings without the participant opening them, contaminating the panel-open measure. The amber callouts themselves are unchanged inside the expanded panel. Expanded content: the **Document Check** panel opens with two square photos side by side (`1fr 1fr`, 10px gap, `aspect-ratio:1/1`, `object-fit:cover`) — left `passport_photo` captioned "PHOTO ON FILE · 등록 사진", right `counter_photo` captioned "COUNTER CAPTURE · 현장 촬영". This mirrors the biometric comparison officers actually perform and replaced the full passport scan, which AI image generation rendered country-inaccurate and watermarked. Then plain rows (124px label column, monospace value) and/or warning rows (amber-tinted callout with ⚠, left border) for flagged data.
+  - **Left = Case file**: section label row ("Case file · 심사 자료" + "Expand each section to review" on the left, the passenger counter on the right). Four collapsible panels (Traveler Profile, Document Check, ICRM/Database, APIS/Intelligence), each a bordered rounded card with a clickable header (bilingual label + a monospace "+ View / – Hide" toggle). Headers are `role="button"`, `tabindex="0"` and carry `aria-expanded`; Enter/Space toggle them and focus is put back on the header after the re-render. The `[!]` badge that used to appear on collapsed headers of panels containing a flagged row was **removed on August 21 2026** — it revealed which panels held warnings without the participant opening them, contaminating the panel-open measure. The amber callouts themselves are unchanged inside the expanded panel. Expanded content: the **Document Check** panel opens with two square photos side by side (`1fr 1fr`, 10px gap, `aspect-ratio:1/1`, `object-fit:cover`) — left `passport_photo` captioned "PHOTO ON FILE · 등록 사진", right `counter_photo` captioned "COUNTER CAPTURE · 현장 촬영". This mirrors the biometric comparison officers actually perform and replaced the full passport scan, which AI image generation rendered country-inaccurate and watermarked. Then plain rows (124px label column, monospace value) and/or warning rows (amber-tinted callout with ⚠, left border) for flagged data.
   - **Right = Decision panel**:
     - **AI Assessment card** (gradient bg, bordered, 10px radius): a recommendation chip in **neutral** styling (bg `#f2f4f7`, border `#d4dae1`, ink text — never colored) + Korean translation, then "System confidence in this recommendation · NN%" (13px) with `이 추천에 대한 시스템 신뢰도` beneath, both suppressed when `show_confidence=0`. The numeric `NN/100` score, its risk-level color coding, the green→amber→red gradient bar and the `LOW … HIGH` axis were **all removed on August 21 2026**: they invited the AI's output to be read as an independent risk metric, and the color anchored severity outside the manipulation. `ai.score` and `ai.level` remain in the JSON but **nothing renders them**. Below (only when the transparency condition is on): "Contributing factors · 평가 근거" — a bulleted list where **every factor line has an English sentence and a Korean translation stacked underneath** (this is the bilingual AI-factors requirement).
-    - **Your Decision**: 3-button grid, ordered left-to-right by severity — Allow Entry/입국 허가, Secondary — Checking / Requesting Further Information/2차 심사 — 정보 확인/추가 요청, Secondary — Recommending Rejection/2차 심사 — 거부 권고 — icon + English + Korean. **Deliberately uncoloured**: all three render identically (bg `#f7f9fb`, border `#d4dae1`, ink text) and fill solid dark `#1f2a37` when selected. A green/amber/red severity ramp was specified and then rejected on August 21 2026, because it nudges severity perception independently of the AI manipulation. Choosing either secondary option reveals an optional 300-character comment textarea below the grid with a live character counter; choosing Allow hides it and clears any note already typed.
-    - Small stats line: sections reviewed count / progress "cur / total reviewed".
-    - **Next button**: full-width, dark, disabled/grey until a decision is made; label switches to "View results" on the last passenger.
+    - **Your Decision**: 3-button grid, ordered left-to-right by severity — Allow Entry/입국 허가, Secondary — Checking / Requesting Further Information/2차 심사 — 정보 확인/추가 요청, Secondary — Recommending Rejection/2차 심사 — 거부 권고 — icon inline with the English label (it had its own line until October 2026), Korean beneath, min-height 58px. **Deliberately uncoloured**: all three render identically (bg `#f7f9fb`, border `#d4dae1`, ink text) and fill solid dark `#1f2a37` when selected. A green/amber/red severity ramp was specified and then rejected on August 21 2026, because it nudges severity perception independently of the AI manipulation. Choosing either secondary option reveals an optional 300-character comment textarea below the grid with a live character counter set inside the box's bottom-right corner; choosing Allow hides it and clears any note already typed.
+    - The "Sections reviewed · 확인 항목 n/4" count sits at the right of the "Your Decision" heading row (it had its own line under the buttons until October 2026; the duplicate "cur / total reviewed" stays in the footer).
+    - **Next button**: full-width, dark, disabled/grey until a decision is made; on the last passenger it reads "Finish · 완료" (or "View results · 결과 보기" when `show_results=1`).
 - **Footer strip** (bg `#f6f8fa`): one small dot per scenario, one per scenario in *presentation order* — filled dark = past, blue ring = current, light grey = upcoming — plus the "cur / total reviewed" text.
 
-### 3. Results screen
+- **Footer note** under the card: the fictional-scenarios disclaimer. The URL-parameter list that followed it is now rendered only under `debug=1` (it named `transparent`, `show_confidence` and `debug` to every participant).
+
+**Layout budget.** The arrival view must fit a 1366×768 laptop: the decision buttons and Next are on screen without scrolling, even in the tallest case (four contributing factors, with the referral comment box open — Next bottom ≈ 766px). Before October 2026 Next sat at ~927px and every passenger needed a scroll. The space came from the header changes above plus tighter AI-card and factor spacing. Keep this budget in mind before adding anything to the right column; `tests/ui.test.js` checks it at 1280px and wider.
+
+**Narrow screens.** A `@media (max-width: 820px)` block (the only CSS outside inline styles, hence `!important`) stacks the body into one column — case file, then AI assessment and decision — and lets the header chips and strips wrap. Hooks are the `r-*` class names on the containers. Before this, the right column was clipped off-screen below ~800px and the task could not be finished on a phone.
+
+### 3. End of session — neutral screen (default)
+Shown after the 15th decision unless `show_results=1`. "Session complete · 심사 종료", a bilingual thank-you, and — when a `return_url` is set — "Returning you to the survey…" plus a **Continue to the survey** button. No score, no answer key, no AI-error labels, no export, no restart: anything about accuracy or which trials were AI errors would colour the post-task survey. With auto-return on (the default whenever `return_url` is set) the redirect fires immediately and `return_delay` does not apply. Without a `return_url` it says the window can be closed.
+
+### 4. Already completed
+Shown when a guid that has finished is opened again (Back from Qualtrics, a reload of the end screen, the launch link reopened). "This session has already been completed" and, if a return URL was recorded, **Continue to the survey**, which re-sends the *identical* stored return URL. The task is never offered a second time under the same guid. Under `debug=1` a **Start over (debug)** button clears the stored records.
+
+### 5. Results screen (`show_results=1`, or `debug=1`)
+For QA and debriefing only — it shows the answer key.
 - Header: "Session complete · 심사 종료" + session GUID (monospace, muted, right-aligned).
 - 4 stat tiles (equal-width row): Correct decisions (n/15); AI-error trials label (derived from the data as `S5 · S9 · S13`, green when all three were answered correctly, red otherwise) + "All AI errors caught"/"AI error(s) missed" caption; Sections opened (total unique panels expanded); Queue condition (the day-type label for the participant's `queue_size`, not the integer).
 - **Decision log** table (one row per scenario, in the order presented — not scenario id order): index, ★ marker for the three AI-error trials, traveler name + nationality, "You · <choice>", "Correct · <choice>", and a right-aligned pill badge — green "Correct"/"Caught" or red "Missed". The heading derives the starred ids from the data rather than hardcoding them.
 - **Data export card**: monospace scrollable box showing the full URL query string that will be sent back (see Data Export below); "Return to survey" button (navigates to `return_url` + the query string, only shown if `return_url` was provided) and a "Copy export data" button (clipboard).
-- "Restart session" button at the bottom: re-shuffles scenario order and clears all state, keeping the session GUID and the queue condition.
+- "Restart session" button at the bottom — **`debug=1` only** since October 2026 (offered to participants it let them redo the task after seeing the answer key, under the same guid): re-shuffles scenario order and clears all state, keeping the session GUID and the queue condition.
+- Auto-return counts down `return_delay` seconds before redirecting.
 
 ## Interactions & Behavior
 - **Panel toggle**: click header → expand/collapse. **Every** expansion logs a `{panel, t_ms}` event (ms since this scenario started) into that scenario's session log — including re-opens, which is why `panels_opened` can contain duplicates and the unique count is taken with a `Set`. Collapses are logged too (added August 2026): `togglePanel()` maintains a per-panel `{opens, first_ms, dwell_ms, openedAt}` accumulator, closing out `dwell_ms` on each collapse. Panels still expanded when the officer advances never receive a close click, so `flushPanelDwell()` settles them at the top of `next()` — meaning dwell always covers the full time a section was on screen. Panels can be open simultaneously, so per-panel dwell need not sum to the trial time.
@@ -58,17 +75,21 @@ Centered text: "Loading case files…" / `assets/scenarios.json` in monospace, m
 - **Timer**: counts **up** from `0:00`. There is no ceiling, no expiry, no forced decision and no progress bar — Incheon officers have no hard per-passenger limit, only an internalised ~60s norm, so a countdown would imply a deadline that does not exist. Resets on each new passenger. (Supersedes both the original auto-advance and the July 2026 OVERTIME flag.) Two properties are load-bearing and easy to regress:
   - **The displayed value is derived from the wall clock**, via `elapsedSec()` = `floor((Date.now() - App.scenarioStart)/1000)`. The 1000ms interval only *refreshes the DOM*; it does not carry the value. Incrementing a counter per tick — the previous implementation — let the display drift from the exported times whenever timers were throttled or coalesced (a backgrounded tab clamps `setInterval` to ~1s and merges pending callbacks), and the error accumulated. Measured before the fix: screen `0:11` against an exported `12353ms`. Do not reintroduce a tick counter.
   - **Deciding does not stop the clock.** It used to, which froze the display at the first click while the exported time kept advancing to the latest one — so an officer who decided at 0:10, kept reading, and switched at 0:40 was recorded at 40s against a screen showing 0:10. `updateTimerDom()` touches only the pill text, so ticking never triggers a re-render (a re-render would destroy the comment textarea mid-typing).
-- **Next button**: disabled until a decision exists for the current passenger; on the 15th passenger it reads "View results" and transitions to the Results screen instead of advancing.
+- **Next button**: disabled until a decision exists for the current passenger. Advancing scrolls the window to the top, so every passenger starts at the top of the page (before October 2026 the next case opened wherever the previous one had been scrolled to). On the 15th passenger it calls `complete()` instead: the session is marked done in storage (see Persistence), then the neutral or results view is shown and the redirect starts.
 - **Debug quick-skip** (`?debug=1` only): a dashed button under Next that selects Allow if nothing is chosen yet and advances immediately, so all 15 scenarios can be walked in seconds during QA. Never rendered in production.
 - **Scenario order**: shuffled per session (Fisher–Yates), constrained so the AI-error trials (`crit:true` — ids 5, 9, 13) never land in the first three or last three positions and are never adjacent to one another. Enforced by **rejection sampling** (re-shuffle until valid, capped at 5000 attempts) rather than a targeted swap, because swapping would bias which orderings appear; re-drawing keeps every admissible ordering equally likely. The band is `positions 3 … N-4` (0-indexed) and the code falls back to a plain shuffle when the data cannot satisfy it (a band narrower than `2k-1` for k error trials). The `order` URL parameter can override the shuffle — see Input Parameters.
-- **Restart**: reshuffles order, clears all decisions/comments/panel state, keeps the same session GUID and queue condition.
+- **Restart** (`debug=1` only): reshuffles order, clears all decisions/comments/panel state and the stored progress/completion records, keeps the same session GUID and queue condition.
+- **Double-click guard**: for 400ms after Next advances (`CLICK_GUARD_MS`), clicks on the new passenger's decision buttons and panel headers are ignored. A double-click on Next advances once, but the second click used to land on whatever the next passenger had under the pointer — the layout height varies with the number of AI factors — and recorded a decision or a panel open the participant never made (found by the October 2026 test pass). No one reads a case and decides in under 400ms, so real input is unaffected; scripted tests wait it out.
+- **Return redirect** uses `location.replace()`, so the finished task page drops out of the browser history and Back from the survey does not land on it.
 
 ## State Management
 Local component state (all client-side, no backend calls except the initial `fetch('assets/scenarios.json')`):
 - `loading: boolean`
 - `order: number[]` — shuffled array of indices into the scenarios array (this is "presentation order"; scenario `id` in the data is stable/unshuffled)
 - `cur: number` — index into `order` for the current passenger (0–14)
-- `view: 'task' | 'results'`
+- `view: 'task' | 'results' | 'done' | 'completed'`
+- `loadError: boolean` — `scenarios.json` failed; shows the error view
+- `doneUrl: string` — the stored return URL, on the `'completed'` view
 - `dec: {[position]: 'a'|'sr'|'si'}` — decision per presented position
 - `comments: {[position]: string}` — referral note per presented position, ≤300 chars
 - `decMs: {[position]: number}` — latency of the most recent decision click, in ms (UI-side mirror; the exported values come from `App.sess`)
@@ -93,6 +114,16 @@ A parallel non-React `App.sess` object (keyed by scenario **id**, not position) 
 
 Note the two index spaces: `App.state.*` is keyed by presentation position while `App.sess` is keyed by stable scenario id; the export bridges them via `App.state.order.indexOf(di)`. This is what gets serialized into `events_log` on export — it survives reshuffles/restarts by being rebuilt in `restart()`.
 
+### Persistence (October 2026)
+When a `guid` parameter is present, progress is written to `localStorage` under `icis-progress:<guid>` on every `render()` and every keystroke in the comment box: `order`, `cur`, `dec`, `decMs`, `comments`, `opened`, `viewed`, the whole `App.sess`, `scenarioStart` and `reloads`. On load, `boot()` checks in order:
+1. `icis-done:<guid>` exists → the **Already completed** view. Written by `complete()` *before* the end screen renders, holding `{url, at}` — the exact return URL sent. The progress record is deleted at the same time.
+2. A progress record for the same scenario-id list → resume at the same passenger with the same order, decisions, comments and open panels, and `reloads` incremented. `scenarioStart` is the stored wall-clock start, so the timer and `sN_time_*` include the time away, and a panel left open keeps accruing dwell. `reloads` is exported so these trials can be identified or excluded.
+3. Otherwise a fresh session.
+
+Without a `guid` parameter nothing is stored (an auto-generated guid changes on every load, so it could never be found again). Every storage access is wrapped in `try/catch`; with storage blocked the task runs exactly as before, just without resume or the completion lock. Before October 2026 a reload drew a new order and lost every decision, and Back from Qualtrics started a fresh task under the same guid, so finishing again sent a second, conflicting record.
+
+**QA note:** because of the lock, reusing a guid that already finished shows "already completed". Use a fresh guid per test run, add `debug=1` (which offers **Start over**), or clear the site's storage.
+
 ## Input Parameters (read from `window.location.search`)
 | Param | Type | Default | Effect |
 |---|---|---|---|
@@ -100,21 +131,23 @@ Note the two index spaces: `App.state.*` is keyed by presentation position while
 | `transparent` | `1`/`0` | `1` (true) | Whether the "Contributing factors" bilingual AI-explanation list is shown (transparency condition). Note this is now its *only* effect — both settings show the recommendation and, unless suppressed below, the confidence |
 | `show_confidence` | `1`/`0` | `1` (true) | Whether "System confidence in this recommendation · NN%" and its Korean line are shown. Independent of `transparent`, so the two can be crossed or either held constant. A third between-subjects switch; the randomization designs in `index.html` assume it is held at `1` |
 | `guid` | string | auto-generated UUID | Session identifier; if Qualtrics already has a response ID, pass it here so behavioral data can be joined to the survey response |
-| `return_url` | string (URL, use `return_url` or `returnUrl`) | none | Base Qualtrics URL to redirect to from the Results screen; the export query string is appended to it |
+| `return_url` | string (URL, use `return_url` or `returnUrl`) | none | Base Qualtrics URL to redirect to at the end of the session; the export query string is appended to it. Must resolve to `http:` or `https:` (relative URLs resolve against the page); anything else — `javascript:`, `data:`… — is ignored as if absent, with a console warning (and a QA note under `debug`). Before October 2026 a `javascript:` value ran when Return was clicked |
 | `order` | `random` \| `default` \| comma-separated ids | per-session shuffle | Presentation order. Omit for the production design (fresh constrained shuffle per participant). `random` = the same constrained shuffle for everyone, from `order_seed`; `default` = authored order; an id list forces that exact sequence (omitted ids are appended, never dropped) |
 | `order_seed` | int | `42` | Seed for `order=random`; ignored otherwise |
-| `auto_return` | `1`/`0` | on when `return_url` is set, off under `debug` | Auto-redirect to `return_url` on completion so data still returns if the participant walks away |
-| `return_delay` | int 0–60 | `6` | Seconds the results screen shows before auto-return; `0` redirects immediately |
-| `debug` | `1`/`0` | `0` | QA only: shows each scenario's difficulty rating inline, adds the quick-skip button, prints the return-URL length against the cap, and disables auto-return — never enable in production |
+| `show_results` | `1`/`0` | `0` (`1` under `debug`) | What the participant sees after the 15th decision. `0` = neutral "Session complete — thank you" screen and straight back to `return_url`; `1` = the scored results screen (answer key, AI-error trials, export box) for QA or a debrief. Added October 2026; previously the scored screen was always shown |
+| `auto_return` | `1`/`0` | on when `return_url` is set, off under `debug` | Auto-redirect to `return_url` on completion so data still returns if the participant walks away. With `show_results=0` the redirect is immediate; with `auto_return=0` the participant clicks **Continue to the survey** |
+| `return_delay` | int 0–60 | `6` | Seconds the results screen shows before auto-return; `0` redirects immediately. Applies only with `show_results=1` |
+| `debug` | `1`/`0` | `0` | QA only: shows each scenario's difficulty rating inline, adds the quick-skip button, shows the condition label and the parameter list, turns on `show_results` (unless `show_results=0`), offers Restart / Start over, prints the return-URL length against the cap, and disables auto-return — never enable in production |
 
 There is no timer parameter: the elapsed-time counter always starts at zero and counts up, and per-trial elapsed time (`sN_time_first`) is the time-pressure measure.
 
 `return_url` is also accepted spelled `returnUrl`; `return_url` wins when both are present. The alias exists only for backward compatibility — prefer the snake_case form.
 
 ## Data Export (Output → Qualtrics)
-On reaching the Results screen (and any time "Copy export data" or "Return to survey" is clicked), the component builds a `URLSearchParams` object with:
+On completing the 15th passenger (and any time "Copy export data" or "Return to survey" is clicked), the component builds a `URLSearchParams` object with:
 - `guid`, `queue_size`, `transparent`, `show_confidence`, `scenario_order` (comma-separated scenario ids in presented order)
 - `order_mode` (`shuffle`/`random`/`default`/`explicit`), and `order_seed` when the mode is `random`
+- `reloads` — how many times the session was resumed after a reload or reopened tab (October 2026). `0` for an uninterrupted run; above `0`, the trial that was on screen at the reload has times that include the time away. Always `0` without a `guid` parameter
 - Per scenario id (1–15):
   - `s{id}_dec` — `a`/`si`/`sr`/`NA`
   - `s{id}_time_first` / `s{id}_time_final` — ms to the first and latest decision click. **`_first` is the time-pressure DV**; the two differ only when the officer reconsidered
@@ -125,7 +158,7 @@ On reaching the Results screen (and any time "Copy export data" or "Return to su
   - `s{id}_comment` — referral note, ≤300 chars, empty for Allow
 - `correct_total`, `panels_total` (rollups)
 - `fp_caught` (S5), `fn_caught` (S9), `fp2_caught` (S13) — `1` if the participant correctly overrode the AI on that error trial. S5 and S13 are false positives (correct action Allow); S9 is a false negative (correct action Secondary — recommending rejection)
-- `events_log` — a single JSON-stringified blob of the full trace (`{guid, queue_size, transparent, show_confidence, order_mode, scenario_order, scenarios: App.sess}`). **Expect it to be absent from real sessions.** It duplicates the entire export and costs ~14,000 characters encoded, so the guard sheds it on any full run; keeping it would need a ~20,000-char cap. Everything analytically useful is now promoted to its own column, so its loss costs only the exact open sequence — which `s{id}_panel_first` already orders.
+- `events_log` — a single JSON-stringified blob of the full trace (`{guid, queue_size, transparent, show_confidence, reloads, order_mode, scenario_order, scenarios: App.sess}`). **Expect it to be absent from real sessions.** It duplicates the entire export and costs ~14,000 characters encoded, so the guard sheds it on any full run; keeping it would need a ~20,000-char cap. Everything analytically useful is now promoted to its own column, so its loss costs only the exact open sequence — which `s{id}_panel_first` already orders.
 - `events_log_dropped` / `comments_dropped` — set to `1` only when the URL-length guard had to shed that part. `finalReturnUrl()` degrades in three tiers: full → drop `events_log` → drop comments too. Korean percent-encodes to ~9 chars per character, so 15 filled comments can still exceed the cap on their own; summary fields always survive. The cap is **16,000** characters (`App.MAX_URL`), raised from 7,500 in August 2026 — once per-panel timing joined the export, 7,500 was tight enough that ordinary sessions were shedding comments. A realistic 15-case run with Korean notes lands near 6,100.
 
 "Return to survey" navigates to `return_url + '?' + <all of the above> ` (or `&` if `return_url` already has a query string). Qualtrics should capture these as embedded data via URL parameters on the return page.
@@ -190,6 +223,27 @@ To add/edit scenarios: append/edit entries in this array (ids should stay unique
 ## Assets
 - `assets/people/*.jpg` — 30 images, a `_passport` / `_counter` pair per scenario. The earlier `assets/photos/` and `assets/passports/` directories were deleted on August 6 2026 when the passport-scan layout was dropped (recoverable from git history).
 - `assets/IMAGE_PROMPTS.md` — the Gemini prompt behind each pair, kept for provenance and regeneration. **Scenario 9's prompt deliberately specifies two similar but different people** (the false-negative case, simulating a passport that may not belong to its bearer) — the difference must stay subtle enough to survive a quick glance.
+
+## Testing
+Serve the folder (`./scripts/serve.sh`, port 8731), then in a second terminal from the repo root:
+```
+node tests/ui.test.js      # Playwright + Chromium; exits non-zero on any FAIL
+node tests/order.test.js   # shuffle-constraint statistics
+```
+`ui.test.js` needs the `playwright` npm package; screenshots go to `tests/shots/` and a JSON summary to `tests/results.json` (both git-ignored). It also cross-checks the exported keys against the field list in `index.html`, so a new export field fails the suite until it is documented there.
+
+## Change log — October 2026 UI review
+A review and end-to-end test pass before building the Qualtrics survey found eight problems; all are fixed and covered by `tests/ui.test.js`:
+1. **The end screen gave the study away.** It showed the answer key, which trials were AI errors, the raw export and a Restart button to every participant. → New `show_results` parameter (default `0`): a neutral thank-you screen and straight back to Qualtrics. The scored screen is opt-in, and Restart is `debug`-only.
+2. **Conditions were named on screen.** The condition label (`transparent`/`opaque`/`no conf`) and the footer's URL-parameter list are now `debug`-only.
+3. **Laptop layout.** At 1366×768 the decision buttons sat below the fold and Next at ~927px; the next passenger opened part-way down the page. → Compacted header and spacing (Next ≤ 768px in the worst case), and scroll to top on Next.
+4. **Phones could not finish the task**, because the right column was clipped. → A responsive single-column layout below 820px.
+5. **Back from Qualtrics restarted the task** under the same guid. → A completion lock per guid (**Already completed** view), and `location.replace()` for the redirect.
+6. **Reload lost all progress.** → Progress is saved per guid and resumed, and the new `reloads` export field records it.
+7. **A failed `scenarios.json` load hung forever.** → An error view with **Try again**.
+8. **`return_url` accepted `javascript:`**, which ran on Return. → Only `http(s)` is accepted.
+
+Also fixed: **a double-click on Next could record a decision on the next passenger** (see Double-click guard). Also added: keyboard access to panel headers (role/tabindex/aria-expanded, Enter/Space).
 
 ## Outstanding / Notes for Implementation
 - Task Sensitivity is intentionally **absent** as a between-subjects factor per the Jul 9 decision — don't reintroduce it as a URL param or data field.

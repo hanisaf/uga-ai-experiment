@@ -146,8 +146,12 @@
         <a href="survey.html?debug=1&order=random">?debug=1&amp;order=random</a>
       </div>
       <div class="lk">
-        <div class="desc">Full production shape — with <code>guid</code> and <code>return_url</code></div>
+        <div class="desc">Full production shape — with <code>guid</code> and <code>return_url</code>. A guid can only be completed once: finish this link and reopening it shows "already completed" (clear the site's storage, or use the debug link below, to run it again)</div>
         <a href="survey.html?transparent=1&guid=TEST-123&return_url=index.html">?transparent=1&amp;guid=…&amp;return_url=…</a>
+      </div>
+      <div class="lk">
+        <div class="desc">Production shape with the <b>scored results screen</b> (debrief / QA) <span class="ko">· 결과 화면 표시</span></div>
+        <a href="survey.html?show_results=1&auto_return=0&return_url=index.html">?show_results=1&amp;auto_return=0&amp;return_url=…</a>
       </div>
     </div>
 
@@ -208,28 +212,35 @@
           <td><code>return_url</code></td>
           <td>URL</td>
           <td>none</td>
-          <td>Qualtrics survey URL to redirect back to on completion; the export query string is appended. Required to collect data back. Also accepted spelled <code>returnUrl</code>; <code>return_url</code> wins if both are present. Prefer the snake_case form — the alias exists only for backward compatibility.</td>
+          <td>Qualtrics survey URL to redirect back to on completion; the export query string is appended. Required to collect data back. Must be an <code>http</code>/<code>https</code> URL (relative paths are fine) — anything else, e.g. <code>javascript:</code>, is ignored as if no <code>return_url</code> were given. Also accepted spelled <code>returnUrl</code>; <code>return_url</code> wins if both are present. Prefer the snake_case form — the alias exists only for backward compatibility.</td>
         </tr>
         <tr>
           <td><code>auto_return</code></td>
           <td><code>1</code> / <code>0</code></td>
           <td>on in prod</td>
-          <td>Auto-redirect to <code>return_url</code> when the session ends, so data isn't lost if the participant closes the tab. On whenever <code>return_url</code> is set; off in <code>debug</code>.</td>
+          <td>Auto-redirect to <code>return_url</code> when the session ends, so data isn't lost if the participant closes the tab. On whenever <code>return_url</code> is set; off in <code>debug</code>. With <code>auto_return=0</code> the participant clicks <b>Continue to the survey</b> instead.</td>
         </tr>
         <tr>
           <td><code>return_delay</code></td>
           <td>int 0–60</td>
           <td><code>6</code></td>
-          <td>Seconds the results screen shows before auto-return. <code>0</code> = redirect immediately.</td>
+          <td>Seconds the scored results screen shows before auto-return. <code>0</code> = redirect immediately. Only applies with <code>show_results=1</code> — the default neutral end screen redirects at once.</td>
+        </tr>
+        <tr>
+          <td><code>show_results</code></td>
+          <td><code>0</code> / <code>1</code></td>
+          <td><code>0</code> (<code>1</code> in debug)</td>
+          <td><b>What the participant sees after the 15th decision.</b> <code>0</code> — a neutral "Session complete · thank you" screen, then straight back to <code>return_url</code>. No score, no answer key, nothing about which trials were AI errors. <b>Use this in production</b>: any of that would colour the post-task survey. <code>1</code> — the scored results screen (correct/missed per case, the AI-error trials, the raw export, a <code>return_delay</code> countdown) for QA or a deliberate debrief. Neither offers participants a restart.</td>
         </tr>
         <tr>
           <td><code>debug</code></td>
           <td><code>1</code> / <code>0</code></td>
           <td><code>0</code></td>
-          <td>QA only — shows each scenario's difficulty rating inline, adds a <b>⚡ Skip</b> button that auto-selects Allow and advances (so you can walk all 15 quickly), and <b>disables auto-return</b> so you can inspect the export screen. <b>Never enable in production.</b></td>
+          <td>QA only — shows each scenario's difficulty rating inline, adds a <b>⚡ Skip</b> button that auto-selects Allow and advances (so you can walk all 15 quickly), <b>disables auto-return</b>, turns on the scored results screen (unless <code>show_results=0</code>), shows the condition label and the parameter list on the page, and adds <b>Restart</b> / <b>Start over</b> buttons. <b>Never enable in production.</b></td>
         </tr>
       </tbody>
     </table>
+    <div class="note warn"><b>October 2026 changes — re-check your Qualtrics setup.</b> (1) Participants no longer see their score or the answer key at the end: the default is a neutral thank-you screen and an immediate return (<code>show_results=0</code>). (2) The condition label and the parameter list are no longer shown on the page outside <code>debug</code>. (3) The layout fits a 1366×768 laptop without scrolling to the decision, and each passenger starts at the top of the page. (4) Phones and narrow windows get a single-column layout. (5) A guid can be completed only once, and Back from Qualtrics no longer restarts the task. (6) A reload resumes where the participant left off — <b>add the new <code>reloads</code> field</b> to the Embedded Data list. (7) A failed load shows an error with <b>Try again</b>. (8) <code>return_url</code> must be <code>http(s)</code>. Details are in <code>README.md</code> under "Change log".</div>
     <div class="note warn"><b>Careful with <code>transparent</code>.</b> The default <code>1</code> applies only when the parameter is <b>absent</b>. Any other <i>present</i> value (e.g. <code>2</code>, <code>yes</code>, empty) is treated as <code>0</code> (opaque) — so always pass exactly <code>1</code> or <code>0</code>.</div>
     <div class="note"><b>The timer counts up, not down.</b> Each passenger opens at <span class="mono">0:00 · 경과 시간</span> and accumulates while the officer deliberates. There is <b>no ceiling, no expiry and no forced decision</b> — Incheon officers have no hard per-passenger limit, only an internalised norm of about 60 seconds, so a countdown would imply a deadline that does not exist. Accumulating time supplies the queue pressure instead, and the elapsed value itself (<code>sN_time_first</code>) is the behavioural measure. The norm is shown beside the timer as <span class="mono">팀 평균 ~60초</span>. <i>(This supersedes the August 2026 countdown and its OVERTIME flag; <code>timer_sec</code> and <code>sN_expired</code> no longer exist.)</i></div>
     <div class="note warn"><b>Timing audit — two defects found and fixed.</b> Both would have made <code>sN_time</code> disagree with the task as the participant experienced it, which is exactly the discrepancy flagged from a prior project. <b>(1)</b> The clock used to stop on the first decision click while the exported time kept advancing to the <i>latest</i> click, so an officer who decided at 0:10, read on, and switched at 0:40 was recorded at 40&nbsp;s against a display frozen at 0:10. The clock now runs until they advance, and the two moments are exported separately as <code>sN_time_first</code> and <code>sN_time_final</code>. <b>(2)</b> The display counted <code>setInterval</code> ticks while the export read the wall clock, so the two drifted apart whenever timers were throttled — a backgrounded tab clamps and coalesces them. The display is now derived from the same wall clock as the export, leaving only sub-second <code>floor()</code> rounding between them. Measured after the fix: screen 13&nbsp;s vs export 13,816&nbsp;ms, and the gap no longer accumulates.</div>
@@ -314,7 +325,7 @@ survey.html?transparent=0&queue_size=500&guid=&lt;ID&gt;&return_url=&lt;RETURN&g
       <li><b>Set <code>return_url</code></b> to the survey's own continue URL. When the participant finishes, the task <b>auto-returns</b> them there with all behavioral data appended (no click needed).</li>
       <li><b>Capture the returned data</b> by declaring matching embedded-data fields on the return page (see next section).</li>
     </ol>
-    <p class="small muted">Those are the only parameters production needs. The rest — <code>order</code>, <code>order_seed</code>, <code>auto_return</code>, <code>return_delay</code>, <code>debug</code> — are deliberately left at their defaults in a live wave; each is described in the <b>URL parameters</b> table above, and <code>debug</code> must never be set in production.</p>
+    <p class="small muted">Those are the only parameters production needs. The rest — <code>order</code>, <code>order_seed</code>, <code>show_results</code>, <code>auto_return</code>, <code>return_delay</code>, <code>debug</code> — are deliberately left at their defaults in a live wave (so participants see the neutral end screen and go straight back); each is described in the <b>URL parameters</b> table above, and <code>debug</code> must never be set in production.</p>
     <div class="note">Keep <code>guid = ResponseID</code>. That single key is what lets you join the rich behavioral export to each Qualtrics response afterward.</div>
   </div>
 
@@ -323,13 +334,15 @@ survey.html?transparent=0&queue_size=500&guid=&lt;ID&gt;&return_url=&lt;RETURN&g
     <h2><span class="n">▸</span> Collecting the data back <span class="ko">데이터 수집</span></h2>
     <p>When the participant finishes the 15th decision, the app builds one query string of all results and <b>redirects the browser to <code>return_url</code></b> with it appended. Two safeguards make this reliable in the field:</p>
     <ul style="font-size:13.5px;color:var(--muted);padding-left:20px;line-height:1.7;">
-      <li><b>Auto-return</b> fires on its own (default 6&nbsp;s, tunable with <code>return_delay</code>) so data still returns if the participant walks away — a "Submitting your data…" banner and a manual button back it up. Off in <code>debug</code>.</li>
+      <li><b>Auto-return</b> fires on its own so data still returns if the participant walks away: immediately from the default neutral end screen, or after <code>return_delay</code> (default 6&nbsp;s) from the scored results screen (<code>show_results=1</code>). A <b>Continue to the survey</b> button backs it up. Off in <code>debug</code>.</li>
+      <li><b>One completion per guid.</b> With a <code>guid</code> in the URL, the session is recorded as finished in the browser before the redirect. If the participant presses Back from Qualtrics, reloads, or reopens the link, they see "This session has already been completed" and a <b>Continue</b> button that re-sends the <i>same</i> data. The task is never restarted under the same guid, so a second, conflicting record can't be sent.</li>
+      <li><b>Resume after reload.</b> Progress is saved in the browser after every action (keyed by <code>guid</code>), so a reload or an accidentally closed tab resumes at the same passenger with the same order, decisions and notes. The clock is not reset, so time away counts toward that trial; the export field <code>reloads</code> says how often this happened. Without a <code>guid</code> parameter nothing is saved.</li>
       <li><b>URL-length guard.</b> Referral comments are the volatile part: Korean percent-encodes to about nine characters each, so fifteen filled comments can still exceed the cap on their own. The cap is <b>16,000 characters</b> — raised from 7,500, which had become tight enough that ordinary sessions were shedding comments once per-panel timing joined the export. 16,000 is about half of Chrome's practical ceiling, and a realistic 15-case session with Korean notes lands near <b>6,100</b>. The app sheds the bulky <code>events_log</code> first, then the comments, setting <code>events_log_dropped=1</code> and <code>comments_dropped=1</code> so the loss is visible in the data. All summary fields always survive, and the complete record stays recoverable via <b>Copy export data</b>.</li>
     </ul>
     <p>To record the data, point <code>return_url</code> at a Qualtrics survey and add an <b>Embedded Data</b> element at the top of its Survey Flow listing every field name below (no values) — Qualtrics auto-fills each from the matching URL parameter. Because <code>guid = ResponseID</code>, <b>join on <code>guid</code></b> to attach it to the participant's response.</p>
-    <div class="note warn"><b>The Embedded Data field list changed shape — not just size.</b> Six families were <b>removed</b> (<code>timer_sec</code>, <code>sN_expired</code>, <code>n_expired</code>, <code>sN_correct</code>, <code>sN_difficulty</code>, <code>sN_override</code>) and new ones added (<code>queue_size</code>, <code>show_confidence</code>, <code>sN_comment</code>, <code>sN_panels_open</code>, <code>sN_panel_opens</code>, <code>sN_panel_dwell</code>, <code>sN_panel_first</code>, <code>fp2_caught</code>), while <code>n_correct</code> was renamed <code>correct_total</code>. Delete the retired fields and add the new ones before your next wave, or you will collect empty columns alongside stale ones.</div>
-    <h3>Full field list — paste into the Embedded Data element <span class="ko">165개 필드</span></h3>
-    <pre>guid, queue_size, transparent, show_confidence, scenario_order, order_mode, order_seed,
+    <div class="note warn"><b>The Embedded Data field list changed shape — not just size.</b> Six families were <b>removed</b> (<code>timer_sec</code>, <code>sN_expired</code>, <code>n_expired</code>, <code>sN_correct</code>, <code>sN_difficulty</code>, <code>sN_override</code>) and new ones added (<code>queue_size</code>, <code>show_confidence</code>, <code>reloads</code>, <code>sN_comment</code>, <code>sN_panels_open</code>, <code>sN_panel_opens</code>, <code>sN_panel_dwell</code>, <code>sN_panel_first</code>, <code>fp2_caught</code>), while <code>n_correct</code> was renamed <code>correct_total</code>. Delete the retired fields and add the new ones before your next wave, or you will collect empty columns alongside stale ones.</div>
+    <h3>Full field list — paste into the Embedded Data element <span class="ko">166개 필드</span></h3>
+    <pre>guid, queue_size, transparent, show_confidence, scenario_order, order_mode, order_seed, reloads,
 s1_dec, s1_time_first, s1_time_final, s1_dec_changes, s1_panels, s1_panels_open, s1_comment,
   s1_panel_opens, s1_panel_dwell, s1_panel_first,
 s2_dec, s2_time_first, s2_time_final, s2_dec_changes, s2_panels, s2_panels_open, s2_comment,
@@ -369,6 +382,7 @@ events_log, events_log_dropped, comments_dropped</pre>
         <tr><td class="mono-cell">guid</td><td>Session ID = the Qualtrics ResponseID you passed in. <b>Join key.</b></td></tr>
         <tr><td class="mono-cell">queue_size, transparent, show_confidence</td><td>The between-subjects conditions this participant actually ran. <code>show_confidence</code> is <b>new</b>: <code>1</code> when the AI's confidence line was displayed.</td></tr>
         <tr><td class="mono-cell">scenario_order</td><td>The 15 scenario ids in the order actually presented.</td></tr>
+        <tr><td class="mono-cell">reloads</td><td><b>New (October 2026).</b> How many times the session was resumed after a reload or reopened tab. <code>0</code> for an uninterrupted run. Above <code>0</code>, the trial that was on screen at the time includes the time away in its <code>sN_time_*</code> and dwell values — consider flagging or excluding it. Always <code>0</code> when no <code>guid</code> was passed (nothing is saved then).</td></tr>
         <tr><td class="mono-cell">order_mode, order_seed</td><td>How that order was produced (<code>shuffle</code>/<code>random</code>/<code>default</code>/<code>explicit</code>); the seed appears only in <code>random</code> mode.</td></tr>
         <tr><td class="mono-cell">sN_dec</td><td>Decision on scenario N: <code>a</code> = Allow, <code>sr</code> = Secondary recommending rejection, <code>si</code> = Secondary requesting information, <code>NA</code> = no decision.</td></tr>
         <tr><td class="mono-cell">sN_time_first</td><td><b>Replaces <code>sN_time</code>.</b> Elapsed ms from the passenger appearing to the <i>first</i> decision click. <b>This is the time-pressure DV</b> — it is the moment of commitment, uncontaminated by any later reconsideration.</td></tr>
@@ -410,7 +424,10 @@ events_log, events_log_dropped, comments_dropped</pre>
         <tr><td>Join data to a survey response</td><td><code>?guid=${e://Field/ResponseID}</code></td></tr>
         <tr><td>Send participant back to Qualtrics</td><td><code>?return_url=&lt;survey URL&gt;</code> (auto-returns)</td></tr>
         <tr><td>Return instantly on finish</td><td><code>?return_delay=0</code></td></tr>
-        <tr><td>Keep participant on results screen</td><td><code>?auto_return=0</code> (or <code>debug=1</code>)</td></tr>
+        <tr><td>Neutral end screen, straight back to the survey <i>(default)</i></td><td>omit <code>show_results</code></td></tr>
+        <tr><td>Show the scored results screen (debrief / QA)</td><td><code>?show_results=1</code></td></tr>
+        <tr><td>Keep participant on the end screen</td><td><code>?auto_return=0</code> (or <code>debug=1</code>)</td></tr>
+        <tr><td>Re-run a guid that already finished</td><td>clear the site's storage, or add <code>debug=1</code> and press <b>Start over</b></td></tr>
         <tr><td>QA the difficulty labels + export screen</td><td><code>?debug=1</code> — never in production</td></tr>
         <tr><td>Walk all 15 scenarios fast</td><td><code>?debug=1</code>, then the <b>⚡ Skip</b> button on each case</td></tr>
       </tbody>
